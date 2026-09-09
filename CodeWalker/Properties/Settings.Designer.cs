@@ -986,5 +986,29 @@ namespace CodeWalker.Properties {
                 this["GTAGen9"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Users\\franc\\source\\repos\\Workspace\\WorldSources\\[roxwood]")]
+        public string RoxwoodFolder {
+            get {
+                return ((string)(this["RoxwoodFolder"]));
+            }
+            set {
+                this["RoxwoodFolder"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Users\\franc\\source\\repos\\Workspace\\WorldSources\\[LasVenturas]")]
+        public string LasVenturasFolder {
+            get {
+                return ((string)(this["LasVenturasFolder"]));
+            }
+            set {
+                this["LasVenturasFolder"] = value;
+            }
+        }
     }
 }

@@ -26,6 +26,7 @@ namespace CodeWalker.Project
         public ProjectExplorerPanel ProjectExplorer { get; set; }
         public ProjectPanel PreviewPanel { get; set; }
         public DeleteGrassPanel DeleteGrassPanel { get; set; }
+        public RelocateResourcePanel RelocateResourcePanel { get; set; }
 
         public GameFileCache GameFileCache { get; private set; }
         public RpfManager RpfMan { get; private set; }
@@ -364,6 +365,13 @@ namespace CodeWalker.Project
             ShowPanel(promote,
                 () => { DeleteGrassPanel = new DeleteGrassPanel(this); return DeleteGrassPanel; }, //createFunc
                 (panel) => { panel.SetProject(CurrentProjectFile); panel.IsFloat = true; }, //updateFunc
+                (panel) => { return true; }); //findFunc
+        }
+        public void ShowRelocateResourcePanel(bool promote)
+        {
+            ShowPanel(promote,
+                () => { RelocateResourcePanel = new RelocateResourcePanel(this); return RelocateResourcePanel; }, //createFunc
+                (panel) => { panel.SetProject(CurrentProjectFile); }, //updateFunc
                 (panel) => { return true; }); //findFunc
         }
         public void ShowGenerateLODLightsPanel(bool promote)
@@ -2027,6 +2035,7 @@ namespace CodeWalker.Project
         public void AddYmapToProject(YmapFile ymap)
         {
             if (ymap == null) return;
+            if (ymap.IsLockedBackdrop) return;//locked backdrop content can't be added to a project
             if (CurrentProjectFile == null)
             {
                 NewProject();
@@ -2173,6 +2182,7 @@ namespace CodeWalker.Project
             try
             {
                 if (CurrentEntity == null) return;
+                if ((CurrentEntity.Ymap ?? CurrentEntity.MloParent?.Ymap)?.IsLockedBackdrop ?? false) return;//locked backdrop content can't be added to a project
                 if (CurrentEntity.Ymap == null)
                 {
                     CurrentYtypFile = CurrentEntity.MloParent?.Archetype?.Ytyp;
@@ -2344,6 +2354,7 @@ namespace CodeWalker.Project
         public void AddGrassBatchToProject(YmapGrassInstanceBatch batch)
         {
             var ymap = batch.Ymap;
+            if (ymap?.IsLockedBackdrop ?? false) return;//locked backdrop content can't be added to a project
             if (!YmapExistsInProject(ymap))
             {
                 ymap.HasChanged = true;
@@ -2353,6 +2364,7 @@ namespace CodeWalker.Project
         public void AddGrassBatchToProject()
         {
             if (CurrentGrassBatch == null) return;
+            if (CurrentGrassBatch.Ymap?.IsLockedBackdrop ?? false) return;//locked backdrop content can't be added to a project
 
             CurrentYmapFile = CurrentGrassBatch.Ymap;
             if (!YmapExistsInProject(CurrentYmapFile))
@@ -2476,6 +2488,7 @@ namespace CodeWalker.Project
                 foreach (var ymap in WorldForm.Renderer.VisibleYmaps)
                 {
                     if (ymap.GrassInstanceBatches == null) continue;
+                    if (ymap.IsLockedBackdrop) continue;//locked backdrop content can't be edited
                     if (!ymapFilter(ymap)) continue;
 
                     for (int i = 0; i < ymap.GrassInstanceBatches.Length; i++)
@@ -2566,6 +2579,7 @@ namespace CodeWalker.Project
         public void AddCarGenToProject()
         {
             if (CurrentCarGen == null) return;
+            if (CurrentCarGen.Ymap?.IsLockedBackdrop ?? false) return;//locked backdrop content can't be added to a project
 
             CurrentYmapFile = CurrentCarGen.Ymap;
             if (!YmapExistsInProject(CurrentYmapFile))
@@ -2687,6 +2701,7 @@ namespace CodeWalker.Project
         public void AddLodLightToProject()
         {
             if (CurrentLodLight == null) return;
+            if (CurrentLodLight.Ymap?.IsLockedBackdrop ?? false) return;//locked backdrop content can't be added to a project
 
             if (!YmapExistsInProject(CurrentLodLight.Ymap))
             {
@@ -2817,6 +2832,7 @@ namespace CodeWalker.Project
         public void AddBoxOccluderToProject()
         {
             if (CurrentBoxOccluder == null) return;
+            if (CurrentBoxOccluder.Ymap?.IsLockedBackdrop ?? false) return;//locked backdrop content can't be added to a project
 
             if (!YmapExistsInProject(CurrentBoxOccluder.Ymap))
             {
@@ -2935,6 +2951,7 @@ namespace CodeWalker.Project
         public void AddOccludeModelToProject()
         {
             if (CurrentOccludeModel == null) return;
+            if (CurrentOccludeModel.Ymap?.IsLockedBackdrop ?? false) return;//locked backdrop content can't be added to a project
 
             if (!YmapExistsInProject(CurrentOccludeModel.Ymap))
             {
@@ -3054,6 +3071,7 @@ namespace CodeWalker.Project
         public void AddOccludeModelTriangleToProject()
         {
             if (CurrentOccludeModelTri == null) return;
+            if (CurrentOccludeModelTri.Ymap?.IsLockedBackdrop ?? false) return;//locked backdrop content can't be added to a project
 
             if (!YmapExistsInProject(CurrentOccludeModelTri.Ymap))
             {
@@ -7661,6 +7679,7 @@ namespace CodeWalker.Project
                 Archetype arch = mlo?.Archetype ?? ent?.MloParent?.Archetype ?? ent?.Archetype;
                 YtypFile ytyp = mlo?.Archetype?.Ytyp ?? ent?.MloParent?.Archetype?.Ytyp ?? ent?.Archetype?.Ytyp ?? room?.OwnerMlo?.Ytyp;
                 YmapFile ymap = ent?.Ymap ?? cargen?.Ymap ?? lodlight?.Ymap ?? boxoccluder?.Ymap ?? occludetri?.Ymap ?? grassbatch?.Ymap ?? mlo?.Ymap;
+                if (ymap?.IsLockedBackdrop ?? false) ymap = null;//locked backdrop content can never become the current project ymap
                 YbnFile ybn = collbound?.GetRootYbn();
                 YndFile ynd = pathnode?.Ynd;
                 YnvFile ynv = navpoly?.Ynv ?? navpoint?.Ynv ?? navportal?.Ynv;
@@ -7935,6 +7954,11 @@ namespace CodeWalker.Project
                 return;//TODO: properly handle interior entities!
             }
 
+            if ((ent.Ymap ?? ent.MloParent?.Ymap)?.IsLockedBackdrop ?? false)
+            {
+                return;//locked backdrop content can't be edited or added to a project
+            }
+
             if (CurrentProjectFile == null)
             {
                 NewProject();
@@ -8002,6 +8026,7 @@ namespace CodeWalker.Project
         private void OnWorldCarGenModified(YmapCarGen cargen)
         {
             if (cargen?.Ymap == null) return;
+            if (cargen.Ymap.IsLockedBackdrop) return;//locked backdrop content can't be edited or added to a project
 
             if (CurrentProjectFile == null)
             {
@@ -8037,6 +8062,7 @@ namespace CodeWalker.Project
         private void OnWorldLodLightModified(YmapLODLight lodlight)
         {
             if (lodlight?.Ymap == null) return;
+            if (lodlight.Ymap.IsLockedBackdrop) return;//locked backdrop content can't be edited or added to a project
 
             if (CurrentProjectFile == null)
             {
@@ -8077,6 +8103,7 @@ namespace CodeWalker.Project
         private void OnWorldBoxOccluderModified(YmapBoxOccluder box)
         {
             if (box?.Ymap == null) return;
+            if (box.Ymap.IsLockedBackdrop) return;//locked backdrop content can't be edited or added to a project
 
             if (CurrentProjectFile == null)
             {
@@ -8112,6 +8139,7 @@ namespace CodeWalker.Project
         private void OnWorldOccludeModelTriModified(YmapOccludeModelTriangle tri)
         {
             if (tri?.Ymap == null) return;
+            if (tri.Ymap.IsLockedBackdrop) return;//locked backdrop content can't be edited or added to a project
 
             if (CurrentProjectFile == null)
             {
@@ -9812,6 +9840,10 @@ namespace CodeWalker.Project
         private void ToolsDeleteGrassMenu_Click(object sender, EventArgs e)
         {
             ShowDeleteGrassPanel(true);
+        }
+        private void ToolsRelocateResourceMenu_Click(object sender, EventArgs e)
+        {
+            ShowRelocateResourcePanel(false);
         }
         private void OptionsRenderGtavMapMenu_Click(object sender, EventArgs e)
         {

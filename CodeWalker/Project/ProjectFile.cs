@@ -609,7 +609,7 @@ namespace CodeWalker.Project
         {
             string relpath = GetRelativePath(ybn.FilePath);
             if (string.IsNullOrEmpty(relpath)) relpath = ybn.Name;
-            if (YndFilenames.Contains(relpath)) return false;
+            if (YbnFilenames.Contains(relpath)) return false;
             YbnFilenames.Add(relpath);
             YbnFiles.Add(ybn);
             return true;

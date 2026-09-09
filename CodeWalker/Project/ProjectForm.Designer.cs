@@ -77,6 +77,7 @@
             this.ToolsImportMenyooXmlMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator31 = new System.Windows.Forms.ToolStripSeparator();
             this.deleteGrassToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ToolsRelocateResourceMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.YmapMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.YmapNameMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator11 = new System.Windows.Forms.ToolStripSeparator();
@@ -559,7 +560,8 @@
             this.toolStripSeparator2,
             this.ToolsImportMenyooXmlMenu,
             this.toolStripSeparator31,
-            this.deleteGrassToolStripMenuItem});
+            this.deleteGrassToolStripMenuItem,
+            this.ToolsRelocateResourceMenu});
             this.ToolsMenu.Name = "ToolsMenu";
             this.ToolsMenu.Size = new System.Drawing.Size(46, 20);
             this.ToolsMenu.Text = "Tools";
@@ -608,7 +610,14 @@
             this.deleteGrassToolStripMenuItem.Size = new System.Drawing.Size(196, 22);
             this.deleteGrassToolStripMenuItem.Text = "Delete Grass...";
             this.deleteGrassToolStripMenuItem.Click += new System.EventHandler(this.ToolsDeleteGrassMenu_Click);
-            // 
+            //
+            // ToolsRelocateResourceMenu
+            //
+            this.ToolsRelocateResourceMenu.Name = "ToolsRelocateResourceMenu";
+            this.ToolsRelocateResourceMenu.Size = new System.Drawing.Size(196, 22);
+            this.ToolsRelocateResourceMenu.Text = "Relocate Resource...";
+            this.ToolsRelocateResourceMenu.Click += new System.EventHandler(this.ToolsRelocateResourceMenu_Click);
+            //
             // YmapMenu
             // 
             this.YmapMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -1917,6 +1926,7 @@
         private System.Windows.Forms.ToolStripMenuItem YtdRemoveFromProjectMenu;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator31;
         private System.Windows.Forms.ToolStripMenuItem deleteGrassToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem ToolsRelocateResourceMenu;
         private System.Windows.Forms.ToolStripMenuItem AudioNewStaticEmitterMenu;
     }
 }

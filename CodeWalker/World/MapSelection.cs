@@ -517,6 +517,23 @@ namespace CodeWalker
             return null;
         }
 
+        public bool IsLockedBackdrop
+        {
+            get
+            {
+                //true when this selection belongs to a ymap marked as render-only backdrop content
+                if (EntityDef != null) return (EntityDef.Ymap ?? EntityDef.MloParent?.Ymap)?.IsLockedBackdrop ?? false;
+                if (MloEntityDef != null) return (MloEntityDef.Ymap ?? MloEntityDef.MloParent?.Ymap)?.IsLockedBackdrop ?? false;
+                if (CarGenerator != null) return CarGenerator.Ymap?.IsLockedBackdrop ?? false;
+                if (LodLight != null) return LodLight.Ymap?.IsLockedBackdrop ?? false;
+                if (BoxOccluder != null) return BoxOccluder.Ymap?.IsLockedBackdrop ?? false;
+                if (OccludeModelTri != null) return OccludeModelTri.Ymap?.IsLockedBackdrop ?? false;
+                if (GrassBatch != null) return GrassBatch.Ymap?.IsLockedBackdrop ?? false;
+                if (TimeCycleModifier != null) return TimeCycleModifier.Ymap?.IsLockedBackdrop ?? false;
+                return false;
+            }
+        }
+
         public bool CanShowWidget
         {
             get
@@ -526,26 +543,34 @@ namespace CodeWalker
                 if (MultipleSelectionItems != null)
                 {
                     res = true;
+                    for (int i = 0; i < MultipleSelectionItems.Length; i++)
+                    {
+                        if (MultipleSelectionItems[i].IsLockedBackdrop)
+                        {
+                            res = false; //don't allow moving a selection containing locked backdrop content
+                            break;
+                        }
+                    }
                 }
                 else if (EntityDef != null)
                 {
-                    res = true;
+                    res = !IsLockedBackdrop;
                 }
                 else if (CarGenerator != null)
                 {
-                    res = true;
+                    res = !IsLockedBackdrop;
                 }
                 else if (LodLight != null)
                 {
-                    res = true;
+                    res = !IsLockedBackdrop;
                 }
                 else if (BoxOccluder != null)
                 {
-                    res = true;
+                    res = !IsLockedBackdrop;
                 }
                 else if (OccludeModelTri != null)
                 {
-                    res = true;
+                    res = !IsLockedBackdrop;
                 }
                 else if (NavPoly != null)
                 {
@@ -986,6 +1011,8 @@ namespace CodeWalker
 
         public void SetPosition(Vector3 newpos, bool editPivot)
         {
+            if (IsLockedBackdrop) return; //locked backdrop content can't be moved
+
             if (MultipleSelectionItems != null)
             {
                 if (editPivot)
@@ -1098,6 +1125,8 @@ namespace CodeWalker
         }
         public void SetRotation(Quaternion newrot, bool editPivot)
         {
+            if (IsLockedBackdrop) return; //locked backdrop content can't be rotated
+
             if (MultipleSelectionItems != null)
             {
                 if (editPivot)
@@ -1205,6 +1234,8 @@ namespace CodeWalker
         }
         public void SetScale(Vector3 newscale, bool editPivot)
         {
+            if (IsLockedBackdrop) return; //locked backdrop content can't be scaled
+
             if (MultipleSelectionItems != null)
             {
                 if (editPivot)

@@ -255,5 +255,11 @@
     <Setting Name="GTAGen9" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="RoxwoodFolder" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\franc\source\repos\Workspace\WorldSources\[roxwood]</Value>
+    </Setting>
+    <Setting Name="LasVenturasFolder" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\franc\source\repos\Workspace\WorldSources\[LasVenturas]</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -39,6 +39,57 @@ namespace CodeWalker.GameFiles
         private Dictionary<uint, Archetype> projectArchetypes = new Dictionary<uint, Archetype>(); //used to override archetypes in world view with project ones
 
 
+        //"external content": assets that live as loose files in a folder on disk, outside any RPF archive.
+        //(eg a FiveM map pack). These are registered by path only, and loaded lazily on first request,
+        //so that thousands of files can be made resolvable without being preloaded into memory.
+        private class ExternalFileRef
+        {
+            public GameFileCacheKey Key;
+            public string FilePath;
+            public object Owner;
+            //volatile: set by the content thread when the file couldn't be read/parsed, read by the render
+            //thread so we don't hammer the disk every frame with a file that will never load.
+            public volatile bool LoadFailed;
+        }
+        private class ExternalArchetypeRef
+        {
+            public Archetype Archetype;
+            public object Owner;
+        }
+        /// <summary>
+        /// Result of a background (content thread) load of an external file, waiting for the cache
+        /// bookkeeping that has to happen under requestSyncRoot. Drained by BeginFrame on the render thread.
+        /// </summary>
+        private class ExternalLoadResult
+        {
+            public GameFile File;
+            public GameFileCacheKey Key;
+            public string FilePath;
+            public bool Success;
+            public long MemoryUsage;
+        }
+        //ConcurrentDictionary, NOT a Dictionary+lock: registration happens on the map pack loader thread,
+        //lookups happen on the render thread (GetYdr/GetYdd/GetYtd/GetYft, under requestSyncRoot) AND on the
+        //background content thread (LoadExternalFile, which holds updateSyncRoot). If the content thread had
+        //to take requestSyncRoot to read this, we'd introduce an updateSyncRoot -> requestSyncRoot ordering
+        //on top of the existing textureSyncRoot -> requestSyncRoot one, for no benefit. Lock-free reads mean
+        //the content thread never blocks the render thread, and never holds a lock across disk IO.
+        private ConcurrentDictionary<GameFileCacheKey, ExternalFileRef> externalFiles = new ConcurrentDictionary<GameFileCacheKey, ExternalFileRef>();
+        //ConcurrentDictionary because GetArchetype (unlike GetYdr etc) takes no lock at all, and registration happens on a background thread
+        private ConcurrentDictionary<uint, ExternalArchetypeRef> externalArchetypes = new ConcurrentDictionary<uint, ExternalArchetypeRef>();
+        //completed external loads, handed from the content thread back to the render thread (see BeginFrame)
+        private ConcurrentQueue<ExternalLoadResult> externalLoadResults = new ConcurrentQueue<ExternalLoadResult>();
+        private int externalFilesLoaded = 0;
+        private int externalFilesFailed = 0;
+
+        /// <summary>Number of loose (non-RPF) files currently registered as resolvable.</summary>
+        public int ExternalFileCount { get { return externalFiles.Count; } }
+        /// <summary>Total external files successfully loaded from disk by the background content thread.</summary>
+        public int ExternalFilesLoaded { get { return Volatile.Read(ref externalFilesLoaded); } }
+        /// <summary>Total external files that failed to load (each is only ever attempted once).</summary>
+        public int ExternalFilesFailed { get { return Volatile.Read(ref externalFilesFailed); } }
+
+
 
 
         //static indexes
@@ -167,6 +218,10 @@ namespace CodeWalker.GameFiles
             GameFile queueclear;
             while (requestQueue.TryDequeue(out queueclear))
             { } //empty the old queue out...
+
+            ExternalLoadResult resclear;
+            while (externalLoadResults.TryDequeue(out resclear))
+            { } //the cache they refer to is gone, so there's nothing left to account for
         }
 
         public void Init(Action<string> updateStatus, Action<string> errorLog)
@@ -2049,6 +2104,254 @@ namespace CodeWalker.GameFiles
             }
         }
 
+
+
+        #region external content (loose files on disk, outside any RPF)
+
+        /// <summary>
+        /// Registers an archetype that came from external content (eg a loose .ytyp in a map pack folder).
+        /// External archetypes override the base game's archetypeDict, but are themselves overridden by project archetypes.
+        /// <paramref name="owner"/> is an opaque token identifying the pack, for UnregisterExternalContent.
+        /// </summary>
+        public void RegisterExternalArchetype(Archetype arch, object owner)
+        {
+            if ((arch?.Hash ?? 0) == 0) return;
+            externalArchetypes[arch.Hash] = new ExternalArchetypeRef() { Archetype = arch, Owner = owner };
+        }
+
+        /// <summary>
+        /// Registers a loose file on disk to be resolvable by the normal hash lookups (GetYdr/GetYdd/GetYtd/GetYft).
+        /// Nothing is read from disk here - the file is loaded on first request and then held in the main cache.
+        /// <paramref name="owner"/> is an opaque token identifying the pack, for UnregisterExternalContent.
+        /// </summary>
+        public void RegisterExternalFile(GameFileType type, uint shortNameHash, string filePath, object owner)
+        {
+            if (shortNameHash == 0) return;
+            if (string.IsNullOrEmpty(filePath)) return;
+            switch (type)
+            {
+                case GameFileType.Ydr:
+                case GameFileType.Ydd:
+                case GameFileType.Ytd:
+                case GameFileType.Yft:
+                    break;
+                default:
+                    return; //only these types are wired up for external loading
+            }
+            var key = new GameFileCacheKey(shortNameHash, type);
+            var fref = new ExternalFileRef() { Key = key, FilePath = filePath, Owner = owner };
+            ExternalFileRef old;
+            if (externalFiles.TryGetValue(key, out old) && (old != null) && (old.FilePath != filePath))
+            {
+                //this key now points somewhere else - swap the registration and drop anything loaded from
+                //the old path in one go, so the render thread can't observe the new path with the old data.
+                lock (requestSyncRoot)
+                {
+                    externalFiles[key] = fref;
+                    mainCache.Remove(key);
+                }
+            }
+            else
+            {
+                externalFiles[key] = fref;
+            }
+        }
+
+        /// <summary>
+        /// Removes everything registered with the given owner token: archetypes, file paths,
+        /// and any file instances that were lazily loaded from those paths. Other owners are left untouched.
+        /// </summary>
+        public void UnregisterExternalContent(object owner)
+        {
+            foreach (var kvp in externalArchetypes.ToArray())
+            {
+                if ((kvp.Value != null) && (kvp.Value.Owner == owner))
+                {
+                    //value-comparing remove, so we never drop another owner's entry that replaced this one
+                    ((ICollection<KeyValuePair<uint, ExternalArchetypeRef>>)externalArchetypes).Remove(kvp);
+                }
+            }
+
+            List<GameFileCacheKey> remove = null;
+            foreach (var kvp in externalFiles.ToArray())
+            {
+                if ((kvp.Value != null) && (kvp.Value.Owner == owner))
+                {
+                    if (remove == null) remove = new List<GameFileCacheKey>();
+                    remove.Add(kvp.Key);
+                    //value-comparing remove, so we never drop another owner's entry that replaced this one
+                    ((ICollection<KeyValuePair<GameFileCacheKey, ExternalFileRef>>)externalFiles).Remove(kvp);
+                }
+            }
+            if (remove != null)
+            {
+                lock (requestSyncRoot)
+                {
+                    //apply anything the content thread finished before we start removing, so a load that's
+                    //already complete can't come back later and touch the cache accounting for a dead key
+                    DrainExternalLoadResults();
+                    foreach (var key in remove)
+                    {
+                        mainCache.Remove(key); //drop any instance that was loaded from this pack
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles a main-cache miss for a key that isn't in any RPF: if a loose file on disk is registered
+        /// for it, build the (still empty) game file, put it in the main cache and queue it for the background
+        /// content thread, exactly the way base-game RPF content is handled - then return it immediately with
+        /// Loaded == false. NOTHING is read from disk here and nothing is parsed here; the caller is the
+        /// render thread. Returns null if nothing is registered for this key, or it's known to be unloadable.
+        /// MUST be called while holding requestSyncRoot.
+        /// </summary>
+        private GameFile TryStartExternalFileLoad(GameFileCacheKey key)
+        {
+            ExternalFileRef fref;
+            if (!externalFiles.TryGetValue(key, out fref)) return null;
+            if (fref == null) return null;
+            if (fref.LoadFailed) return null; //tried once already and it didn't work - don't queue it again
+            if (string.IsNullOrEmpty(fref.FilePath)) return null;
+
+            //the synthetic entry the loader will parse into. Note entry.File stays null: that's exactly what
+            //LoadFile uses to tell "loose file on disk" apart from "lives inside an RPF".
+            var name = Path.GetFileName(fref.FilePath);
+            var entry = new RpfResourceFileEntry();
+            entry.Name = name;
+            entry.NameLower = name.ToLowerInvariant();
+            entry.ShortNameHash = key.Hash;
+            entry.NameHash = JenkHash.GenHash(entry.NameLower);
+            entry.Path = fref.FilePath;
+
+            GameFile gf;
+            switch (key.Type)
+            {
+                case GameFileType.Ydr: gf = new YdrFile(entry); break;
+                case GameFileType.Ydd: gf = new YddFile(entry); break;
+                case GameFileType.Ytd: gf = new YtdFile(entry); break;
+                case GameFileType.Yft: gf = new YftFile(entry); break;
+                default: return null;
+            }
+            gf.Name = name;
+            gf.FilePath = fref.FilePath; //the content thread reads the bytes from here
+            gf.Key = key;                //Cache.TryAdd sets this too, but callers use Key even when the add fails
+            gf.LastUseTime = DateTime.Now; //so a Compact() before the load finishes doesn't immediately drop it
+
+            if (mainCache.TryAdd(key, gf))
+            {
+                TryLoadEnqueue(gf);
+            }
+            else
+            {
+                gf.LoadQueued = false;
+                //out of cache space - same as RPF content, we'll try again on a later frame
+            }
+            return gf;
+        }
+
+        /// <summary>
+        /// Loads an external (loose, non-RPF) file. Runs on the background content thread - this is the ONLY
+        /// place external content touches the disk. Cache bookkeeping that needs requestSyncRoot is handed
+        /// back to the render thread through externalLoadResults, so no lock is held across the IO.
+        /// </summary>
+        private bool LoadExternalFile(GameFile file, RpfFileEntry entry)
+        {
+            var key = file.Key;
+            var path = file.FilePath;
+            if (string.IsNullOrEmpty(path)) path = entry?.Path;
+            if (string.IsNullOrEmpty(path)) return false; //nothing to read - not actually external content
+
+            ExternalFileRef fref;
+            if (!externalFiles.TryGetValue(key, out fref)) fref = null;
+            if ((fref != null) && (fref.FilePath != path)) fref = null; //re-registered elsewhere since we queued this
+            if ((fref != null) && fref.LoadFailed) return false; //known bad - don't hit the disk again
+
+            bool ok = false;
+            long memuse = 0;
+            try
+            {
+                byte[] data = File.ReadAllBytes(path);
+
+                switch (file.Type)
+                {
+                    //Load(data) parses the RSC7 header of the raw on-disk file, and (via LoadResourceFile)
+                    //replaces RpfFileEntry with one built from that header
+                    case GameFileType.Ydr: ((YdrFile)file).Load(data); break;
+                    case GameFileType.Ydd: ((YddFile)file).Load(data); break;
+                    case GameFileType.Ytd: ((YtdFile)file).Load(data); break;
+                    case GameFileType.Yft: ((YftFile)file).Load(data); break;
+                    default: return false;
+                }
+
+                file.Name = (entry != null) ? entry.Name : Path.GetFileName(path);
+                file.FilePath = path;
+                if (file.RpfFileEntry != null)
+                {
+                    file.RpfFileEntry.Path = path; //LoadResourceFile doesn't carry Path across
+                }
+
+                //GameFile.MemoryUsage was computed in the ctor from the (then empty) synthetic entry, so it's 0.
+                //Fix it up now, otherwise the main cache would never evict external content.
+                var resent = file.RpfFileEntry as RpfResourceFileEntry;
+                memuse = (resent != null) ? (long)(resent.SystemSize + resent.GraphicsSize) : 0;
+                if (memuse <= 0) memuse = data.Length;
+                file.MemoryUsage = memuse;
+
+                ok = true;
+                Interlocked.Increment(ref externalFilesLoaded);
+            }
+            catch (Exception ex)
+            {
+                if (fref != null) fref.LoadFailed = true; //sticky: never retried
+                Interlocked.Increment(ref externalFilesFailed);
+                ErrorLog?.Invoke("Error loading external file " + path + ": " + ex.Message);
+            }
+
+            //hand the cache bookkeeping to the render thread - mainCache is guarded by requestSyncRoot and we
+            //hold updateSyncRoot here, so taking it would create a new lock ordering we don't need.
+            externalLoadResults.Enqueue(new ExternalLoadResult()
+            {
+                File = file,
+                Key = key,
+                FilePath = path,
+                Success = ok,
+                MemoryUsage = memuse,
+            });
+
+            return ok;
+        }
+
+        /// <summary>
+        /// Applies the main-cache side effects of finished external loads. Cheap: a couple of dictionary
+        /// lookups per completed file, no IO, no parsing. MUST be called while holding requestSyncRoot.
+        /// </summary>
+        private void DrainExternalLoadResults()
+        {
+            ExternalLoadResult res;
+            while (externalLoadResults.TryDequeue(out res))
+            {
+                if (res == null) continue;
+                if (res.Success)
+                {
+                    //TryAdd accounted this file as 0 bytes (its synthetic entry had no sizes yet) - correct
+                    //the cache's running total now, so external content is actually eligible for eviction.
+                    mainCache.UpdateMemoryUsage(res.Key, res.File, res.MemoryUsage);
+                }
+                else
+                {
+                    //drop the failed instance, otherwise the "in cache but not loaded" branch of GetYdr etc
+                    //would re-queue it every single frame. ExternalFileRef.LoadFailed (set on the content
+                    //thread) then stops TryStartExternalFileLoad from ever creating a new one.
+                    mainCache.RemoveIf(res.Key, res.File);
+                }
+            }
+        }
+
+        #endregion
+
+
+
         public void TryLoadEnqueue(GameFile gf)
         {
             if (((!gf.Loaded)) && (requestQueue.Count < 10))// && (!gf.LoadQueued)
@@ -2065,6 +2368,11 @@ namespace CodeWalker.GameFiles
             Archetype arch = null;
             projectArchetypes.TryGetValue(hash, out arch);
             if (arch != null) return arch;
+            ExternalArchetypeRef earch;
+            if (externalArchetypes.TryGetValue(hash, out earch) && (earch?.Archetype != null))
+            {
+                return earch.Archetype; //external content overrides base game archetypes
+            }
             archetypeDict.TryGetValue(hash, out arch);
             return arch;
         }
@@ -2105,6 +2413,7 @@ namespace CodeWalker.GameFiles
                     }
                     else
                     {
+                        ydr = TryStartExternalFileLoad(key) as YdrFile; //loose file on disk, outside any RPF
                         //ErrorLog("Drawable not found: " + JenkIndex.GetString(hash)); //too spammy...
                     }
                 }
@@ -2144,6 +2453,7 @@ namespace CodeWalker.GameFiles
                     }
                     else
                     {
+                        ydd = TryStartExternalFileLoad(key) as YddFile; //loose file on disk, outside any RPF
                         //ErrorLog("Drawable dictionary not found: " + JenkIndex.GetString(hash)); //too spammy...
                     }
                 }
@@ -2183,6 +2493,7 @@ namespace CodeWalker.GameFiles
                     }
                     else
                     {
+                        ytd = TryStartExternalFileLoad(key) as YtdFile; //loose file on disk, outside any RPF
                         //ErrorLog("Texture dictionary not found: " + JenkIndex.GetString(hash)); //too spammy...
                     }
                 }
@@ -2257,6 +2568,7 @@ namespace CodeWalker.GameFiles
                     }
                     else
                     {
+                        yft = TryStartExternalFileLoad(key) as YftFile; //loose file on disk, outside any RPF
                         //ErrorLog("Yft not found: " + JenkIndex.GetString(hash)); //too spammy...
                     }
                 }
@@ -2475,6 +2787,12 @@ namespace CodeWalker.GameFiles
             RpfFileEntry entry = file.RpfFileEntry;
             if (entry != null)
             {
+                if (entry.File == null)
+                {
+                    //no backing RPF archive to extract from - this is external content (a loose file on disk),
+                    //so read it here, on the content thread. RpfMan.LoadFile would NRE on entry.File anyway.
+                    return LoadExternalFile(file, entry);
+                }
                 return RpfMan.LoadFile(file, entry);
             }
             return false;
@@ -2494,6 +2812,7 @@ namespace CodeWalker.GameFiles
         {
             lock (requestSyncRoot)
             {
+                DrainExternalLoadResults(); //before Compact, so evictions see the real sizes
                 mainCache.BeginFrame();
             }
         }

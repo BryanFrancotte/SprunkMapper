@@ -47,6 +47,9 @@ namespace CodeWalker
             this.StatusBarCheckBox = new System.Windows.Forms.CheckBox();
             this.ViewTabControl = new System.Windows.Forms.TabControl();
             this.ViewWorldTabPage = new System.Windows.Forms.TabPage();
+            this.WorldRoxwoodCheckBox = new System.Windows.Forms.CheckBox();
+            this.WorldLasVenturasCheckBox = new System.Windows.Forms.CheckBox();
+            this.WorldMapPackStatusLabel = new System.Windows.Forms.Label();
             this.EnableModsCheckBox = new System.Windows.Forms.CheckBox();
             this.label30 = new System.Windows.Forms.Label();
             this.DlcLevelComboBox = new System.Windows.Forms.ComboBox();
@@ -565,6 +568,9 @@ namespace CodeWalker
             // 
             // ViewWorldTabPage
             // 
+            this.ViewWorldTabPage.Controls.Add(this.WorldRoxwoodCheckBox);
+            this.ViewWorldTabPage.Controls.Add(this.WorldLasVenturasCheckBox);
+            this.ViewWorldTabPage.Controls.Add(this.WorldMapPackStatusLabel);
             this.ViewWorldTabPage.Controls.Add(this.EnableModsCheckBox);
             this.ViewWorldTabPage.Controls.Add(this.label30);
             this.ViewWorldTabPage.Controls.Add(this.DlcLevelComboBox);
@@ -588,11 +594,45 @@ namespace CodeWalker
             this.ViewWorldTabPage.Text = "World";
             this.ViewWorldTabPage.UseVisualStyleBackColor = true;
             // 
+            // WorldRoxwoodCheckBox
+            //
+            this.WorldRoxwoodCheckBox.AutoSize = true;
+            this.WorldRoxwoodCheckBox.Enabled = false;
+            this.WorldRoxwoodCheckBox.Location = new System.Drawing.Point(6, 260);
+            this.WorldRoxwoodCheckBox.Name = "WorldRoxwoodCheckBox";
+            this.WorldRoxwoodCheckBox.Size = new System.Drawing.Size(103, 17);
+            this.WorldRoxwoodCheckBox.TabIndex = 71;
+            this.WorldRoxwoodCheckBox.Text = "Show Roxwood";
+            this.WorldRoxwoodCheckBox.UseVisualStyleBackColor = true;
+            this.WorldRoxwoodCheckBox.CheckedChanged += new System.EventHandler(this.WorldRoxwoodCheckBox_CheckedChanged);
+            //
+            // WorldLasVenturasCheckBox
+            //
+            this.WorldLasVenturasCheckBox.AutoSize = true;
+            this.WorldLasVenturasCheckBox.Enabled = false;
+            this.WorldLasVenturasCheckBox.Location = new System.Drawing.Point(6, 283);
+            this.WorldLasVenturasCheckBox.Name = "WorldLasVenturasCheckBox";
+            this.WorldLasVenturasCheckBox.Size = new System.Drawing.Size(117, 17);
+            this.WorldLasVenturasCheckBox.TabIndex = 72;
+            this.WorldLasVenturasCheckBox.Text = "Show Las Venturas";
+            this.WorldLasVenturasCheckBox.UseVisualStyleBackColor = true;
+            this.WorldLasVenturasCheckBox.CheckedChanged += new System.EventHandler(this.WorldLasVenturasCheckBox_CheckedChanged);
+            //
+            // WorldMapPackStatusLabel
+            //
+            this.WorldMapPackStatusLabel.AutoEllipsis = true;
+            this.WorldMapPackStatusLabel.ForeColor = System.Drawing.SystemColors.GrayText;
+            this.WorldMapPackStatusLabel.Location = new System.Drawing.Point(6, 306);
+            this.WorldMapPackStatusLabel.Name = "WorldMapPackStatusLabel";
+            this.WorldMapPackStatusLabel.Size = new System.Drawing.Size(182, 32);
+            this.WorldMapPackStatusLabel.TabIndex = 73;
+            this.WorldMapPackStatusLabel.Text = "";
+            //
             // EnableModsCheckBox
-            // 
+            //
             this.EnableModsCheckBox.AutoSize = true;
             this.EnableModsCheckBox.Enabled = false;
-            this.EnableModsCheckBox.Location = new System.Drawing.Point(6, 280);
+            this.EnableModsCheckBox.Location = new System.Drawing.Point(6, 349);
             this.EnableModsCheckBox.Name = "EnableModsCheckBox";
             this.EnableModsCheckBox.Size = new System.Drawing.Size(88, 17);
             this.EnableModsCheckBox.TabIndex = 68;
@@ -603,7 +643,7 @@ namespace CodeWalker
             // label30
             // 
             this.label30.AutoSize = true;
-            this.label30.Location = new System.Drawing.Point(1, 337);
+            this.label30.Location = new System.Drawing.Point(1, 406);
             this.label30.Name = "label30";
             this.label30.Size = new System.Drawing.Size(60, 13);
             this.label30.TabIndex = 70;
@@ -616,7 +656,7 @@ namespace CodeWalker
             this.DlcLevelComboBox.FormattingEnabled = true;
             this.DlcLevelComboBox.Items.AddRange(new object[] {
             "<Loading...>"});
-            this.DlcLevelComboBox.Location = new System.Drawing.Point(62, 334);
+            this.DlcLevelComboBox.Location = new System.Drawing.Point(62, 403);
             this.DlcLevelComboBox.Name = "DlcLevelComboBox";
             this.DlcLevelComboBox.Size = new System.Drawing.Size(126, 21);
             this.DlcLevelComboBox.TabIndex = 70;
@@ -627,7 +667,7 @@ namespace CodeWalker
             // 
             this.EnableDlcCheckBox.AutoSize = true;
             this.EnableDlcCheckBox.Enabled = false;
-            this.EnableDlcCheckBox.Location = new System.Drawing.Point(6, 311);
+            this.EnableDlcCheckBox.Location = new System.Drawing.Point(6, 380);
             this.EnableDlcCheckBox.Name = "EnableDlcCheckBox";
             this.EnableDlcCheckBox.Size = new System.Drawing.Size(83, 17);
             this.EnableDlcCheckBox.TabIndex = 69;
@@ -3855,6 +3895,9 @@ namespace CodeWalker
         private System.Windows.Forms.Label label28;
         private System.Windows.Forms.TrackBar MapViewDetailTrackBar;
         private System.Windows.Forms.CheckBox WorldScriptedYmapsCheckBox;
+        private System.Windows.Forms.CheckBox WorldRoxwoodCheckBox;
+        private System.Windows.Forms.CheckBox WorldLasVenturasCheckBox;
+        private System.Windows.Forms.Label WorldMapPackStatusLabel;
         private System.Windows.Forms.ComboBox WeatherRegionComboBox;
         private System.Windows.Forms.Label label29;
         private System.Windows.Forms.CheckBox WorldYmapWeatherFilterCheckBox;

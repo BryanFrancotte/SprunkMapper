@@ -120,6 +120,11 @@ namespace CodeWalker
 
         Dictionary<MetaHash, YmapFile> renderworldVisibleYmapDict = new Dictionary<MetaHash, YmapFile>();
 
+        //external read-only backdrop map packs (loose FiveM-style folders). Toggle state is never persisted.
+        ExternalMapPack roxwoodMapPack = null;
+        ExternalMapPack lasVenturasMapPack = null;
+        readonly List<ExternalMapPack> externalMapPacks = new List<ExternalMapPack>();
+
         bool worldymaptimefilter = true;
         bool worldymapweatherfilter = true;
 
@@ -227,6 +232,8 @@ namespace CodeWalker
             PrevMouseHit.WorldForm = this;
 
             initedOk = Renderer.Init();
+
+            InitExternalMapPacks();
 
             GTAFolder.UpdateEnhancedFormTitle(this);
         }
@@ -700,6 +707,11 @@ namespace CodeWalker
             if (CutsceneForm != null)
             {
                 CutsceneForm.GetVisibleYmaps(camera, renderworldVisibleYmapDict);
+            }
+
+            for (int i = 0; i < externalMapPacks.Count; i++)
+            {
+                externalMapPacks[i].GetVisibleYmaps(camera.Position, renderworldVisibleYmapDict);
             }
 
             Renderer.RenderWorld(renderworldVisibleYmapDict, spaceEnts);
@@ -1759,6 +1771,15 @@ namespace CodeWalker
         {
             //called during UpdateWidgets()
 
+            if (GroupWidgetTarget != null)
+            {
+                //a tool panel is driving the widget as a group gizmo - it owns the move, and
+                //there may not be any map selection at all, so don't touch SelectedItem here.
+                if (newpos == oldpos) return;
+                GroupWidgetTarget.OnGroupWidgetPositionChange(newpos, oldpos);
+                return;
+            }
+
             newpos = SnapPosition(newpos);
 
             if (newpos == oldpos) return;
@@ -1776,6 +1797,12 @@ namespace CodeWalker
         {
             //called during UpdateWidgets()
             if (newrot == oldrot) return;
+
+            if (GroupWidgetTarget != null)
+            {
+                GroupWidgetTarget.OnGroupWidgetRotationChange(newrot, oldrot);
+                return;
+            }
 
             SelectedItem.SetRotation(newrot, EditEntityPivot);
 
@@ -1798,6 +1825,71 @@ namespace CodeWalker
             if (ProjectForm != null)
             {
                 ProjectForm.OnWorldSelectionModified(SelectedItem);
+            }
+        }
+
+        public IGroupWidgetTarget GroupWidgetTarget { get; private set; }
+
+        /// <summary>
+        /// Hands the transform widget over to a tool panel so it can be dragged as a group gizmo.
+        /// While active the widget stays visible regardless of the map selection, is restricted to
+        /// yaw-only rotation (the only rotation the relocate tools can apply), and its drags are
+        /// routed to the target instead of the selection.
+        /// </summary>
+        public void ShowGroupWidget(IGroupWidgetTarget target, Vector3 pos, bool rotationMode)
+        {
+            if (target == null) return;
+
+            GroupWidgetTarget = target;
+
+            //RenderWidgets()/UpdateWidgets() bail out entirely when this is off, so the gizmo would
+            //silently never appear. Force it on (and keep the toolbox checkbox honest about it).
+            ShowWidget = true;
+            if ((SelectionWidgetCheckBox != null) && !SelectionWidgetCheckBox.Checked)
+            {
+                SelectionWidgetCheckBox.Checked = true;
+            }
+
+            lock (Renderer.RenderSyncRoot)
+            {
+                Widget.Position = pos;
+                Widget.Rotation = Quaternion.Identity;
+                Widget.RotationWidget.EnableAxes = WidgetAxis.Z;
+                Widget.Visible = true;
+            }
+
+            SetWidgetMode(rotationMode ? "Rotation" : "Position");
+        }
+        public void HideGroupWidget(IGroupWidgetTarget target)
+        {
+            if ((target != null) && (GroupWidgetTarget != target)) return; //don't let a stale panel steal the widget back
+
+            GroupWidgetTarget = null;
+
+            lock (Renderer.RenderSyncRoot)
+            {
+                Widget.RotationWidget.EnableAxes = WidgetAxis.XYZ;
+                Widget.Rotation = Quaternion.Identity;
+                Widget.Visible = SelectedItem.CanShowWidget;
+                if (Widget.Visible)
+                {
+                    Widget.Position = SelectedItem.WidgetPosition;
+                    Widget.Rotation = SelectedItem.WidgetRotation;
+                }
+            }
+        }
+        /// <summary>
+        /// Moves the group gizmo without raising a change event - for when the panel's own
+        /// text fields are edited and the widget needs to follow.
+        /// </summary>
+        public void SetGroupWidgetTransform(IGroupWidgetTarget target, Vector3 pos, Quaternion rot)
+        {
+            if ((target == null) || (GroupWidgetTarget != target)) return;
+
+            lock (Renderer.RenderSyncRoot)
+            {
+                Widget.Position = pos;
+                Widget.Rotation = rot;
             }
         }
 
@@ -2732,6 +2824,8 @@ namespace CodeWalker
         {
             //find mouse hits for things like MLOs, time cycle mods, grass batches, and car generators in ymaps.
 
+            if (ymap.IsLockedBackdrop) return; //read-only backdrop content is never selectable
+
             BoundingBox bbox = new BoundingBox();
             Ray mray = new Ray();
             mray.Position = camera.MouseRay.Position + camera.Position;
@@ -3608,8 +3702,8 @@ namespace CodeWalker
                         UpdateSelectionUI(true);
                     }
 
-                    Widget.Visible = SelectedItem.CanShowWidget;
-                    if (Widget.Visible)
+                    Widget.Visible = (GroupWidgetTarget != null) || SelectedItem.CanShowWidget;
+                    if (Widget.Visible && (GroupWidgetTarget == null)) //a group gizmo owns its own transform - selection doesn't move it
                     {
                         Widget.Position = SelectedItem.WidgetPosition;
                         Widget.Rotation = SelectedItem.WidgetRotation;
@@ -5030,6 +5124,83 @@ namespace CodeWalker
 
 
 
+        #region external map packs (read-only backdrop scenery)
+
+        private void InitExternalMapPacks()
+        {
+            //Created once, up front, and never removed from the list - the render thread iterates
+            //this list every frame and must not see it mutate. An unloaded pack publishes an empty
+            //snapshot, so its per-frame cost is a null/length check.
+            roxwoodMapPack = new ExternalMapPack("Roxwood", Settings.Default.RoxwoodFolder, gameFileCache);
+            lasVenturasMapPack = new ExternalMapPack("Las Venturas", Settings.Default.LasVenturasFolder, gameFileCache);
+            roxwoodMapPack.StatusChanged = OnExternalMapPackStatusChanged;
+            lasVenturasMapPack.StatusChanged = OnExternalMapPackStatusChanged;
+            roxwoodMapPack.ErrorLog = LogError;
+            lasVenturasMapPack.ErrorLog = LogError;
+            externalMapPacks.Add(roxwoodMapPack);
+            externalMapPacks.Add(lasVenturasMapPack);
+        }
+
+        private void ToggleExternalMapPack(ExternalMapPack pack, CheckBox checkbox, string folderpath)
+        {
+            if (pack == null) return;
+            if (checkbox.Checked)
+            {
+                if (!gameFileCache.IsInited)
+                {
+                    UpdateMapPackStatusLabel(pack.Name + ": game files still loading.");
+                    checkbox.Checked = false;
+                    return;
+                }
+                if (pack.State == ExternalMapPackState.Unloading)
+                {
+                    UpdateMapPackStatusLabel(pack.Name + ": still unloading, try again in a moment.");
+                    checkbox.Checked = false;
+                    return;
+                }
+                pack.TrySetFolderPath(folderpath); //picks up any settings change made since startup
+                if (!pack.BeginLoad())
+                {
+                    UpdateMapPackStatusLabel(pack.Status);
+                    //leave it checked only if it really is loading or already loaded
+                    if (!pack.IsLoading && !pack.IsLoaded) checkbox.Checked = false;
+                    return;
+                }
+                UpdateMapPackStatusLabel(pack.Status);
+            }
+            else
+            {
+                pack.BeginUnload(() => UpdateMapPackStatusLabel(""));
+                UpdateMapPackStatusLabel(pack.Name + ": unloading...");
+            }
+        }
+
+        private void OnExternalMapPackStatusChanged(ExternalMapPack pack)
+        {
+            //called on the pack's loader thread
+            UpdateMapPackStatusLabel(pack.Status);
+        }
+
+        private void UpdateMapPackStatusLabel(string text)
+        {
+            try
+            {
+                if (!formopen) return;
+                if (InvokeRequired)
+                {
+                    BeginInvoke(new Action(() => { UpdateMapPackStatusLabel(text); }));
+                }
+                else
+                {
+                    WorldMapPackStatusLabel.Text = text ?? string.Empty;
+                }
+            }
+            catch { }
+        }
+
+        #endregion
+
+
         private void EnableCacheDependentUI()
         {
             try
@@ -5048,6 +5219,8 @@ namespace CodeWalker
                     ToolsMenuAudioExplorer.Enabled = true;
                     ToolsMenuBinarySearch.Enabled = true;
                     ToolsMenuJenkInd.Enabled = true;
+                    WorldRoxwoodCheckBox.Enabled = true;
+                    WorldLasVenturasCheckBox.Enabled = true;
                 }
             }
             catch { }
@@ -6134,6 +6307,10 @@ namespace CodeWalker
 
         private void WorldForm_FormClosed(object sender, FormClosedEventArgs e)
         {
+            for (int i = 0; i < externalMapPacks.Count; i++)
+            {
+                externalMapPacks[i].BeginUnload(null); //cancels any in-progress background load
+            }
             SaveSettings();
         }
 
@@ -6182,7 +6359,7 @@ namespace CodeWalker
                         {
                             GrabbedWidget = Widget;
                             GrabbedWidget.IsDragging = true;
-                            if (Input.ShiftPressed)
+                            if (Input.ShiftPressed && (GroupWidgetTarget == null)) //shift-drag cloning doesn't apply to a group gizmo
                             {
                                 var ms = CurrentMapSelection.MultipleSelectionItems;
                                 if (ms?.Length > 0 && ms[0].PathNode != null)
@@ -6257,7 +6434,10 @@ namespace CodeWalker
                 {
                     MarkUndoEnd(GrabbedWidget);
                     GrabbedWidget.IsDragging = false;
-                    GrabbedWidget.Position = SelectedItem.WidgetPosition;//in case of any snapping, make sure widget is in correct position at the end
+                    if (GroupWidgetTarget == null) //a group gizmo isn't tied to the selection - leave it where it was dragged to
+                    {
+                        GrabbedWidget.Position = SelectedItem.WidgetPosition;//in case of any snapping, make sure widget is in correct position at the end
+                    }
                     GrabbedWidget = null;
                 }
                 if ((e.Location == MouseDownPoint) && (MousedMarker == null))
@@ -7318,6 +7498,16 @@ namespace CodeWalker
         private void WorldScriptedYmapsCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             Renderer.ShowScriptedYmaps = WorldScriptedYmapsCheckBox.Checked;
+        }
+
+        private void WorldRoxwoodCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            ToggleExternalMapPack(roxwoodMapPack, WorldRoxwoodCheckBox, Settings.Default.RoxwoodFolder);
+        }
+
+        private void WorldLasVenturasCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            ToggleExternalMapPack(lasVenturasMapPack, WorldLasVenturasCheckBox, Settings.Default.LasVenturasFolder);
         }
 
         private void WorldYmapTimeFilterCheckBox_CheckedChanged(object sender, EventArgs e)

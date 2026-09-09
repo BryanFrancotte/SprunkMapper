@@ -113,6 +113,46 @@ namespace CodeWalker
             CurrentMemoryUsage = 0;
         }
 
+        /// <summary>
+        /// Removes the given key, but only if the value currently cached under it is still the given item.
+        /// Used when a background load fails, so we never drop a newer instance that replaced the failed one.
+        /// </summary>
+        public bool RemoveIf(TKey key, TVal item)
+        {
+            LinkedListNode<TVal> n;
+            if (loadedListDict.TryGetValue(key, out n) && ReferenceEquals(n.Value, item))
+            {
+                loadedListDict.Remove(key);
+                loadedList.Remove(n);
+                Interlocked.Add(ref CurrentMemoryUsage, -n.Value.MemoryUsage);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Corrects an item's MemoryUsage after it was added to the cache, keeping CurrentMemoryUsage
+        /// consistent (TryAdd accounted for the value MemoryUsage had at the time it was added).
+        /// Needed for content whose real size isn't known until it has actually been loaded - ie loose
+        /// files on disk, whose synthetic RpfResourceFileEntry has no sizes in it until the header is read.
+        /// The item's MemoryUsage is always updated; the running total is only adjusted if this exact
+        /// item is still the one cached under that key.
+        /// </summary>
+        public bool UpdateMemoryUsage(TKey key, TVal item, long newUsage)
+        {
+            if (item == null) return false;
+            LinkedListNode<TVal> n;
+            if (loadedListDict.TryGetValue(key, out n) && ReferenceEquals(n.Value, item))
+            {
+                long delta = newUsage - item.MemoryUsage;
+                item.MemoryUsage = newUsage;
+                if (delta != 0) Interlocked.Add(ref CurrentMemoryUsage, delta);
+                return true;
+            }
+            item.MemoryUsage = newUsage; //not (or no longer) in the cache - nothing to account for
+            return false;
+        }
+
         public void Remove(TKey key)
         {
             LinkedListNode<TVal> n;

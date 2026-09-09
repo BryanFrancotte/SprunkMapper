@@ -3214,11 +3214,15 @@ namespace CodeWalker.Rendering
 
             if (RenderedDrawablesListEnable) //for later hit tests
             {
-                var rd = new RenderedDrawable();
-                rd.Drawable = rndbl.Key;
-                rd.Archetype = arche;
-                rd.Entity = entity;
-                RenderedDrawables.Add(rd);
+                var eymap = entity?.Ymap ?? entity?.MloParent?.Ymap;
+                if ((eymap == null) || !eymap.IsLockedBackdrop) //locked backdrop content can't be selected
+                {
+                    var rd = new RenderedDrawable();
+                    rd.Drawable = rndbl.Key;
+                    rd.Archetype = arche;
+                    rd.Entity = entity;
+                    RenderedDrawables.Add(rd);
+                }
             }
 
             bool isselected = SelectionFlagsTestAll || (rndbl.Key == SelectedDrawable);

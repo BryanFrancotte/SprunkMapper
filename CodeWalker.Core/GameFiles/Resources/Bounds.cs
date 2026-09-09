@@ -2100,7 +2100,47 @@ namespace CodeWalker.GameFiles
 
         public void CalculateQuantum()
         {
-            Quantum = (BoxMax - BoxMin) * 0.5f / 32767.0f;
+            //Vertices are stored quantized as signed shorts RELATIVE TO CenterGeom, with a
+            //scale of Quantum (see Read(), GetReferences() and BoundVertex_s), so the
+            //representable region is CenterGeom +/- 32767*Quantum. Deriving Quantum from
+            //(BoxMax-BoxMin) alone is only valid while the box is centred on CenterGeom -
+            //which BoundBVH.BuildBVH() breaks, since it legitimately recomputes BoxMin/BoxMax
+            //as the tight AABB of the polygons, and that AABB is generally NOT centred on
+            //CenterGeom. The box-derived quantum can then be up to ~2x too small, and
+            //BoundVertex_s CLAMPS the outlying vertices to +/-32767, moving them tens of
+            //metres. So compute the quantum the vertex data actually requires and use it as
+            //a hard lower bound.
+            var boxq = (BoxMax - BoxMin) * 0.5f / 32767.0f;
+
+            var need = Vector3.Zero; //largest |vertex| (relative to CenterGeom) on each axis
+            if (Vertices != null)
+            {
+                foreach (var v in Vertices)
+                {
+                    need = Vector3.Max(need, Vector3.Abs(v));
+                }
+            }
+            if (VerticesShrunk != null) //written with the same Quantum, so it has to fit too
+            {
+                foreach (var v in VerticesShrunk)
+                {
+                    need = Vector3.Max(need, Vector3.Abs(v));
+                }
+            }
+            need /= 32767.0f;
+
+            //An existing quantum that can still represent every vertex is kept as-is: the
+            //vertices in memory were decoded from it, so re-scaling the grid re-quantizes
+            //untouched geometry for no benefit (that alone was costing up to a whole quantum
+            //of drift on every plain save). Note need>0 implies Quantum>0 here, so this also
+            //rejects an unset (zero) quantum, eg. after an XML import.
+            var cur = Quantum;
+            if ((cur.X >= need.X) && (cur.Y >= need.Y) && (cur.Z >= need.Z) && (need != Vector3.Zero))
+            {
+                return;
+            }
+
+            Quantum = Vector3.Max(boxq, need);
 
 
             //var min = new Vector3(float.MaxValue);
@@ -4477,11 +4517,23 @@ namespace CodeWalker.GameFiles
         public short Y { get; set; }
         public short Z { get; set; }
 
+        //Round to nearest instead of letting the (short) cast truncate toward zero. The
+        //caller passes vertex/Quantum, whose exact value is an integer for any vertex that
+        //came out of the file unmodified - but float division lands a hair below it about
+        //half the time, and truncation then dropped it a whole quantum (up to ~16mm on a
+        //large bound) on every single save. Rounding also halves the worst-case error when
+        //the geometry genuinely does have to be re-quantized.
+        private static short Quantize(float f)
+        {
+            var r = (float)Math.Round(f);
+            return (short)Math.Min(Math.Max(r, -32767f), 32767f);
+        }
+
         public BoundVertex_s(Vector3 v)
         {
-            X = (short)Math.Min(Math.Max(v.X, -32767f), 32767f);
-            Y = (short)Math.Min(Math.Max(v.Y, -32767f), 32767f);
-            Z = (short)Math.Min(Math.Max(v.Z, -32767f), 32767f);
+            X = Quantize(v.X);
+            Y = Quantize(v.Y);
+            Z = Quantize(v.Z);
         }
 
         public Vector3 Vector
@@ -4489,9 +4541,9 @@ namespace CodeWalker.GameFiles
             get { return new Vector3(X, Y, Z); }
             set
             {
-                X = (short)Math.Min(Math.Max(value.X, -32767f), 32767f);
-                Y = (short)Math.Min(Math.Max(value.Y, -32767f), 32767f);
-                Z = (short)Math.Min(Math.Max(value.Z, -32767f), 32767f);
+                X = Quantize(value.X);
+                Y = Quantize(value.Y);
+                Z = Quantize(value.Z);
             }
         }
     }
