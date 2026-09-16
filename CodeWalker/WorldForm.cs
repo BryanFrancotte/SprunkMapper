@@ -1771,15 +1771,6 @@ namespace CodeWalker
         {
             //called during UpdateWidgets()
 
-            if (GroupWidgetTarget != null)
-            {
-                //a tool panel is driving the widget as a group gizmo - it owns the move, and
-                //there may not be any map selection at all, so don't touch SelectedItem here.
-                if (newpos == oldpos) return;
-                GroupWidgetTarget.OnGroupWidgetPositionChange(newpos, oldpos);
-                return;
-            }
-
             newpos = SnapPosition(newpos);
 
             if (newpos == oldpos) return;
@@ -1797,12 +1788,6 @@ namespace CodeWalker
         {
             //called during UpdateWidgets()
             if (newrot == oldrot) return;
-
-            if (GroupWidgetTarget != null)
-            {
-                GroupWidgetTarget.OnGroupWidgetRotationChange(newrot, oldrot);
-                return;
-            }
 
             SelectedItem.SetRotation(newrot, EditEntityPivot);
 
@@ -1825,71 +1810,6 @@ namespace CodeWalker
             if (ProjectForm != null)
             {
                 ProjectForm.OnWorldSelectionModified(SelectedItem);
-            }
-        }
-
-        public IGroupWidgetTarget GroupWidgetTarget { get; private set; }
-
-        /// <summary>
-        /// Hands the transform widget over to a tool panel so it can be dragged as a group gizmo.
-        /// While active the widget stays visible regardless of the map selection, is restricted to
-        /// yaw-only rotation (the only rotation the relocate tools can apply), and its drags are
-        /// routed to the target instead of the selection.
-        /// </summary>
-        public void ShowGroupWidget(IGroupWidgetTarget target, Vector3 pos, bool rotationMode)
-        {
-            if (target == null) return;
-
-            GroupWidgetTarget = target;
-
-            //RenderWidgets()/UpdateWidgets() bail out entirely when this is off, so the gizmo would
-            //silently never appear. Force it on (and keep the toolbox checkbox honest about it).
-            ShowWidget = true;
-            if ((SelectionWidgetCheckBox != null) && !SelectionWidgetCheckBox.Checked)
-            {
-                SelectionWidgetCheckBox.Checked = true;
-            }
-
-            lock (Renderer.RenderSyncRoot)
-            {
-                Widget.Position = pos;
-                Widget.Rotation = Quaternion.Identity;
-                Widget.RotationWidget.EnableAxes = WidgetAxis.Z;
-                Widget.Visible = true;
-            }
-
-            SetWidgetMode(rotationMode ? "Rotation" : "Position");
-        }
-        public void HideGroupWidget(IGroupWidgetTarget target)
-        {
-            if ((target != null) && (GroupWidgetTarget != target)) return; //don't let a stale panel steal the widget back
-
-            GroupWidgetTarget = null;
-
-            lock (Renderer.RenderSyncRoot)
-            {
-                Widget.RotationWidget.EnableAxes = WidgetAxis.XYZ;
-                Widget.Rotation = Quaternion.Identity;
-                Widget.Visible = SelectedItem.CanShowWidget;
-                if (Widget.Visible)
-                {
-                    Widget.Position = SelectedItem.WidgetPosition;
-                    Widget.Rotation = SelectedItem.WidgetRotation;
-                }
-            }
-        }
-        /// <summary>
-        /// Moves the group gizmo without raising a change event - for when the panel's own
-        /// text fields are edited and the widget needs to follow.
-        /// </summary>
-        public void SetGroupWidgetTransform(IGroupWidgetTarget target, Vector3 pos, Quaternion rot)
-        {
-            if ((target == null) || (GroupWidgetTarget != target)) return;
-
-            lock (Renderer.RenderSyncRoot)
-            {
-                Widget.Position = pos;
-                Widget.Rotation = rot;
             }
         }
 
@@ -3702,8 +3622,8 @@ namespace CodeWalker
                         UpdateSelectionUI(true);
                     }
 
-                    Widget.Visible = (GroupWidgetTarget != null) || SelectedItem.CanShowWidget;
-                    if (Widget.Visible && (GroupWidgetTarget == null)) //a group gizmo owns its own transform - selection doesn't move it
+                    Widget.Visible = SelectedItem.CanShowWidget;
+                    if (Widget.Visible)
                     {
                         Widget.Position = SelectedItem.WidgetPosition;
                         Widget.Rotation = SelectedItem.WidgetRotation;
@@ -6359,7 +6279,7 @@ namespace CodeWalker
                         {
                             GrabbedWidget = Widget;
                             GrabbedWidget.IsDragging = true;
-                            if (Input.ShiftPressed && (GroupWidgetTarget == null)) //shift-drag cloning doesn't apply to a group gizmo
+                            if (Input.ShiftPressed)
                             {
                                 var ms = CurrentMapSelection.MultipleSelectionItems;
                                 if (ms?.Length > 0 && ms[0].PathNode != null)
@@ -6434,10 +6354,7 @@ namespace CodeWalker
                 {
                     MarkUndoEnd(GrabbedWidget);
                     GrabbedWidget.IsDragging = false;
-                    if (GroupWidgetTarget == null) //a group gizmo isn't tied to the selection - leave it where it was dragged to
-                    {
-                        GrabbedWidget.Position = SelectedItem.WidgetPosition;//in case of any snapping, make sure widget is in correct position at the end
-                    }
+                    GrabbedWidget.Position = SelectedItem.WidgetPosition;//in case of any snapping, make sure widget is in correct position at the end
                     GrabbedWidget = null;
                 }
                 if ((e.Location == MouseDownPoint) && (MousedMarker == null))

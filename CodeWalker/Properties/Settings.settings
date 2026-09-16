@@ -218,25 +218,6 @@
     <Setting Name="ArtificialAmbientLight" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="KeyBindings" Type="System.Collections.Specialized.StringCollection" Scope="User">
-      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
-&lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
-  &lt;string&gt;Move Forwards: W&lt;/string&gt;
-  &lt;string&gt;Move Backwards: S&lt;/string&gt;
-  &lt;string&gt;Move Left: A&lt;/string&gt;
-  &lt;string&gt;Move Right: D&lt;/string&gt;
-  &lt;string&gt;Move Up: R&lt;/string&gt;
-  &lt;string&gt;Move Down: F&lt;/string&gt;
-  &lt;string&gt;Move Slower / Zoom In: Z&lt;/string&gt;
-  &lt;string&gt;Move Faster / Zoom Out: X&lt;/string&gt;
-  &lt;string&gt;Toggle Mouse Select: C&lt;/string&gt;
-  &lt;string&gt;Toggle Toolbar: T&lt;/string&gt;
-  &lt;string&gt;Exit Edit Mode: Q&lt;/string&gt;
-  &lt;string&gt;Edit Position: W&lt;/string&gt;
-  &lt;string&gt;Edit Rotation: E&lt;/string&gt;
-  &lt;string&gt;Edit Scale: R&lt;/string&gt;
-&lt;/ArrayOfString&gt;</Value>
-    </Setting>
     <Setting Name="ColourPickerCustomColours" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
@@ -260,6 +241,25 @@
     </Setting>
     <Setting Name="LasVenturasFolder" Type="System.String" Scope="User">
       <Value Profile="(Default)">C:\Users\franc\source\repos\Workspace\WorldSources\[LasVenturas]</Value>
+    </Setting>
+    <Setting Name="KeyBindings" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
+&lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
+  &lt;string&gt;Move Forwards: Z&lt;/string&gt;
+  &lt;string&gt;Move Backwards: S&lt;/string&gt;
+  &lt;string&gt;Move Left: Q&lt;/string&gt;
+  &lt;string&gt;Move Right: D&lt;/string&gt;
+  &lt;string&gt;Move Up: R&lt;/string&gt;
+  &lt;string&gt;Move Down: F&lt;/string&gt;
+  &lt;string&gt;Move Slower / Zoom In: W&lt;/string&gt;
+  &lt;string&gt;Move Faster / Zoom Out: X&lt;/string&gt;
+  &lt;string&gt;Toggle Mouse Select: C&lt;/string&gt;
+  &lt;string&gt;Toggle Toolbar: T&lt;/string&gt;
+  &lt;string&gt;Exit Edit Mode: A&lt;/string&gt;
+  &lt;string&gt;Edit Position: W&lt;/string&gt;
+  &lt;string&gt;Edit Rotation: E&lt;/string&gt;
+  &lt;string&gt;Edit Scale: R&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
     </Setting>
   </Settings>
 </SettingsFile>

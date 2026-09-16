@@ -16,12 +16,43 @@ namespace CodeWalker.GameFiles
         public RpfManager RpfMan;
         private Action<string> UpdateStatus;
         private Action<string> ErrorLog;
-        public int MaxItemsPerLoop = 1; //to keep things flowing...
+        //Streaming throughput. These were 1 and 10, which is enough for base game content
+        //(already-loaded RPFs, LOD-heavy) but starves a large loose-file map pack: thousands of
+        //drawables come into view at once and all but a handful of the per-frame requests were
+        //dropped, so the world filled in very slowly. The content thread only contends with
+        //DLC/mods toggles (updateSyncRoot), never with the render thread, so a bigger batch costs
+        //the frame nothing - it just keeps the loader saturated.
+        public int MaxItemsPerLoop = 8; //to keep things flowing...
+        public int MaxQueuedRequests = 64;
+
+        //External content ("backdrop" map packs registered with RegisterExternalFile) streams through its own
+        //low-priority lane and its own cache, so a flood of backdrop requests can never crowd base-game/project
+        //requests out of requestQueue, and backdrop assets can never evict base-game/project assets.
+        //Per ContentThreadProc loop the normal lane is always served first; the external lane then gets up to
+        //MaxExternalItemsPerLoop items (at least one, so the backdrop always progresses), but yields early as soon
+        //as normal work is waiting, so normal work never waits behind more than one backdrop load.
+        public int MaxExternalItemsPerLoop = 8;
+        //distinct backdrop files waiting (the external lane is de-duplicated via GameFile.LoadQueued). Overflow isn't
+        //lost: the instance stays in externalCache unqueued and the next GetYdr/GetYtd/etc for it queues it again.
+        public int MaxQueuedExternalRequests = 256;
+        //external lane only: skip a queued backdrop request if nothing has asked for it for this long (the camera has
+        //moved away). Safe because every repeat GetYdr/GetYdd/GetYtd/GetYft refreshes LastUseTime through
+        //externalCache.TryGet, and a skipped file that is still wanted is simply queued again by its next request.
+        //<= 0 disables the filter.
+        public double ExternalRequestStaleSeconds = 1.0;
+        //memory budget (bytes, same accounting as the main cache: RSC7 system+graphics sizes) for external content.
+        //Applied to externalCache every BeginFrame, so it can be changed at runtime.
+        //1.5GB: the measured dense-area working set of the Roxwood/LV pack files reached 1,152MB, and 23% of the
+        //Roxwood grid positions sampled needed more than the previous 1GB.
+        public long ExternalCacheSize = 1536L * 1024 * 1024; //1.5GB
 
         private ConcurrentQueue<GameFile> requestQueue = new ConcurrentQueue<GameFile>();
+        private ConcurrentQueue<GameFile> externalRequestQueue = new ConcurrentQueue<GameFile>();
 
         ////dynamic cache
         private Cache<GameFileCacheKey, GameFile> mainCache;
+        //external (backdrop) content only - see ExternalCacheSize. Guarded by requestSyncRoot, exactly like mainCache.
+        private Cache<GameFileCacheKey, GameFile> externalCache;
         public volatile bool IsInited = false;
 
         private volatile bool archetypesLoaded = false;
@@ -47,6 +78,9 @@ namespace CodeWalker.GameFiles
             public GameFileCacheKey Key;
             public string FilePath;
             public object Owner;
+            //on-disk (compressed) size, from a metadata stat at registration - 0 if unknown. Lets a not-yet-loaded
+            //placeholder be accounted at a per-file estimate, so a burst of big files can't overshoot the budget.
+            public long DiskSize;
             //volatile: set by the content thread when the file couldn't be read/parsed, read by the render
             //thread so we don't hammer the disk every frame with a file that will never load.
             public volatile bool LoadFailed;
@@ -67,6 +101,7 @@ namespace CodeWalker.GameFiles
             public string FilePath;
             public bool Success;
             public long MemoryUsage;
+            public long DiskSize; //bytes actually read, for the memory/disk ratio behind EstimateExternalSize
         }
         //ConcurrentDictionary, NOT a Dictionary+lock: registration happens on the map pack loader thread,
         //lookups happen on the render thread (GetYdr/GetYdd/GetYtd/GetYft, under requestSyncRoot) AND on the
@@ -81,6 +116,16 @@ namespace CodeWalker.GameFiles
         private ConcurrentQueue<ExternalLoadResult> externalLoadResults = new ConcurrentQueue<ExternalLoadResult>();
         private int externalFilesLoaded = 0;
         private int externalFilesFailed = 0;
+        //per-type (index: ydr, ydd, ytd, yft) stats of loaded external files, for the provisional MemoryUsage of
+        //not-yet-loaded placeholders: learned memory/disk ratio (primary - per-file, so big files are known to be
+        //big before they load) and plain average (fallback when a file's disk size is unknown).
+        //Only touched under requestSyncRoot (render thread).
+        private long[] externalSizeSum = new long[4];
+        private long[] externalSizeCount = new long[4];
+        private long[] externalRatioMemSum = new long[4];
+        private long[] externalRatioDiskSum = new long[4];
+        private const long ExternalSizeEstimateDefault = 1024 * 1024; //1MB, when neither disk size nor any sample is available
+        private const double ExternalMemDiskRatioDefault = 2.5; //until a sample of that type is seen (Roxwood ydr measured 2.49 over 300 files)
 
         /// <summary>Number of loose (non-RPF) files currently registered as resolvable.</summary>
         public int ExternalFileCount { get { return externalFiles.Count; } }
@@ -192,12 +237,35 @@ namespace CodeWalker.GameFiles
                 return mainCache.CurrentMemoryUsage;
             }
         }
+        //external (backdrop) lane/cache stats. QueueLength/ItemCount/MemoryUsage above are the main lane/cache only.
+        public int ExternalQueueLength
+        {
+            get
+            {
+                return externalRequestQueue.Count;
+            }
+        }
+        public int ExternalItemCount
+        {
+            get
+            {
+                return externalCache.Count;
+            }
+        }
+        public long ExternalMemoryUsage
+        {
+            get
+            {
+                return Interlocked.Read(ref externalCache.CurrentMemoryUsage);
+            }
+        }
 
 
 
         public GameFileCache(long size, double cacheTime, string folder, bool gen9, string dlc, bool mods, string excludeFolders)
         {
             mainCache = new Cache<GameFileCacheKey, GameFile>(size, cacheTime);//2GB is good as default
+            externalCache = new Cache<GameFileCacheKey, GameFile>(ExternalCacheSize, cacheTime);
             SelectedDlc = dlc;
             EnableDlc = !string.IsNullOrEmpty(SelectedDlc);
             EnableMods = mods;
@@ -212,12 +280,15 @@ namespace CodeWalker.GameFiles
             IsInited = false;
 
             mainCache.Clear();
+            externalCache.Clear();
 
             textureLookup.Clear();
 
             GameFile queueclear;
             while (requestQueue.TryDequeue(out queueclear))
             { } //empty the old queue out...
+            while (externalRequestQueue.TryDequeue(out queueclear))
+            { } //(their instances were in externalCache, which is gone - LoadQueued on them no longer matters)
 
             ExternalLoadResult resclear;
             while (externalLoadResults.TryDequeue(out resclear))
@@ -2121,7 +2192,10 @@ namespace CodeWalker.GameFiles
 
         /// <summary>
         /// Registers a loose file on disk to be resolvable by the normal hash lookups (GetYdr/GetYdd/GetYtd/GetYft).
-        /// Nothing is read from disk here - the file is loaded on first request and then held in the main cache.
+        /// Nothing is read from disk here - the file is loaded on first request and then held in externalCache.
+        /// Like a FiveM stream folder, a registered file REPLACES the base-game (RPF) file of the same name and type
+        /// (project files still win over both). The base-game file comes back after UnregisterExternalContent, or if
+        /// the registered file fails to load (see GetExternalFile).
         /// <paramref name="owner"/> is an opaque token identifying the pack, for UnregisterExternalContent.
         /// </summary>
         public void RegisterExternalFile(GameFileType type, uint shortNameHash, string filePath, object owner)
@@ -2139,7 +2213,11 @@ namespace CodeWalker.GameFiles
                     return; //only these types are wired up for external loading
             }
             var key = new GameFileCacheKey(shortNameHash, type);
-            var fref = new ExternalFileRef() { Key = key, FilePath = filePath, Owner = owner };
+            //one metadata stat (no read) on the caller's thread - the map pack loader's background task
+            //(ExternalMapPack.LoadCore via Task.Run), never the render thread. Used only for cache admission estimates.
+            long disksize = 0;
+            try { disksize = new FileInfo(filePath).Length; } catch { disksize = 0; }
+            var fref = new ExternalFileRef() { Key = key, FilePath = filePath, Owner = owner, DiskSize = disksize };
             ExternalFileRef old;
             if (externalFiles.TryGetValue(key, out old) && (old != null) && (old.FilePath != filePath))
             {
@@ -2148,7 +2226,7 @@ namespace CodeWalker.GameFiles
                 lock (requestSyncRoot)
                 {
                     externalFiles[key] = fref;
-                    mainCache.Remove(key);
+                    externalCache.Remove(key); //a request already queued for the old path is skipped by the content thread (path mismatch)
                 }
             }
             else
@@ -2192,18 +2270,19 @@ namespace CodeWalker.GameFiles
                     DrainExternalLoadResults();
                     foreach (var key in remove)
                     {
-                        mainCache.Remove(key); //drop any instance that was loaded from this pack
+                        externalCache.Remove(key); //drop any instance that was loaded from this pack
                     }
+                    //requests still sitting in externalRequestQueue for these keys are skipped by the content
+                    //thread (no longer registered), so they cause no disk IO and no cache accounting.
                 }
             }
         }
 
         /// <summary>
-        /// Handles a main-cache miss for a key that isn't in any RPF: if a loose file on disk is registered
-        /// for it, build the (still empty) game file, put it in the main cache and queue it for the background
-        /// content thread, exactly the way base-game RPF content is handled - then return it immediately with
-        /// Loaded == false. NOTHING is read from disk here and nothing is parsed here; the caller is the
-        /// render thread. Returns null if nothing is registered for this key, or it's known to be unloadable.
+        /// Handles an externalCache miss for a registered external key: build the (still empty) game file, put it
+        /// in externalCache and queue it on the external lane for the background content thread - then return it
+        /// immediately with Loaded == false. NOTHING is read from disk here and nothing is parsed here; the caller
+        /// is the render thread. Returns null if nothing is registered for this key, or it's known to be unloadable.
         /// MUST be called while holding requestSyncRoot.
         /// </summary>
         private GameFile TryStartExternalFileLoad(GameFileCacheKey key)
@@ -2237,17 +2316,56 @@ namespace CodeWalker.GameFiles
             gf.FilePath = fref.FilePath; //the content thread reads the bytes from here
             gf.Key = key;                //Cache.TryAdd sets this too, but callers use Key even when the add fails
             gf.LastUseTime = DateTime.Now; //so a Compact() before the load finishes doesn't immediately drop it
+            //provisional size (the real one is only known after the header is read on the content thread), so that a
+            //burst of placeholders can't blow straight through ExternalCacheSize while they're all still 0 bytes.
+            //Corrected to the real size by DrainExternalLoadResults; removed exactly as accounted on failure/eviction.
+            gf.MemoryUsage = EstimateExternalSize(key.Type, fref.DiskSize);
 
-            if (mainCache.TryAdd(key, gf))
+            //external content lives in its own cache, so it can never evict (or be refused space by) base/project content
+            if (externalCache.TryAdd(key, gf))
             {
-                TryLoadEnqueue(gf);
+                TryLoadEnqueueExternal(gf);
             }
             else
             {
                 gf.LoadQueued = false;
-                //out of cache space - same as RPF content, we'll try again on a later frame
+                //out of external cache space - same as RPF content, we'll try again on a later frame
             }
             return gf;
+        }
+
+        /// <summary>
+        /// Resolves a key against registered external (pack) content: an instance already in externalCache
+        /// (re-queued if it hasn't loaded yet), else a fresh one via TryStartExternalFileLoad.
+        /// GetYdr/GetYdd/GetYtd/GetYft call this right after projectFiles and BEFORE mainCache and the base-game
+        /// dicts, so resolution is project > external > base - the same order as GetArchetype, and what FiveM does
+        /// (a streamed file replaces the vanilla file of the same name).
+        /// Returns null - meaning "use the base game" - if the key isn't (or is no longer) registered, or if its pack
+        /// file is known to be unloadable (LoadFailed), so a broken pack file never hides a working vanilla one.
+        /// MUST be called while holding requestSyncRoot. No IO, no parsing.
+        /// </summary>
+        private GameFile GetExternalFile(GameFileCacheKey key)
+        {
+            ExternalFileRef fref;
+            if (!externalFiles.TryGetValue(key, out fref) || (fref == null)) return null; //not external content (or unregistered) -> base
+            if (fref.LoadFailed) return null; //broken pack file -> base. Its failed instance, if still cached, is dropped by the next drain.
+            var gf = externalCache.TryGet(key); //also refreshes LastUseTime - the external stale filter relies on this
+            if (gf != null)
+            {
+                if (!string.Equals(gf.FilePath, fref.FilePath, StringComparison.Ordinal))
+                {
+                    //left over from an earlier registration of this key at another path (an unregister followed by a
+                    //lock-free re-register can briefly leave one behind) - never serve the old file for the new one
+                    externalCache.RemoveIf(key, gf);
+                    return TryStartExternalFileLoad(key);
+                }
+                if (!gf.Loaded)
+                {
+                    TryLoadEnqueueExternal(gf);
+                }
+                return gf;
+            }
+            return TryStartExternalFileLoad(key);
         }
 
         /// <summary>
@@ -2269,9 +2387,11 @@ namespace CodeWalker.GameFiles
 
             bool ok = false;
             long memuse = 0;
+            long disksize = 0;
             try
             {
                 byte[] data = File.ReadAllBytes(path);
+                disksize = data.Length;
 
                 switch (file.Type)
                 {
@@ -2291,12 +2411,14 @@ namespace CodeWalker.GameFiles
                     file.RpfFileEntry.Path = path; //LoadResourceFile doesn't carry Path across
                 }
 
-                //GameFile.MemoryUsage was computed in the ctor from the (then empty) synthetic entry, so it's 0.
-                //Fix it up now, otherwise the main cache would never evict external content.
+                //GameFile.MemoryUsage was only a provisional estimate at queue time (the synthetic entry has no sizes).
+                //The real size is applied by DrainExternalLoadResults on the render thread via Cache.UpdateMemoryUsage.
+                //Do NOT assign file.MemoryUsage here: UpdateMemoryUsage computes its delta from the item's current
+                //MemoryUsage, so pre-assigning it made the delta 0 - the cache total never grew, and a later
+                //Remove/Compact then subtracted the real size, driving CurrentMemoryUsage negative.
                 var resent = file.RpfFileEntry as RpfResourceFileEntry;
                 memuse = (resent != null) ? (long)(resent.SystemSize + resent.GraphicsSize) : 0;
                 if (memuse <= 0) memuse = data.Length;
-                file.MemoryUsage = memuse;
 
                 ok = true;
                 Interlocked.Increment(ref externalFilesLoaded);
@@ -2308,16 +2430,24 @@ namespace CodeWalker.GameFiles
                 ErrorLog?.Invoke("Error loading external file " + path + ": " + ex.Message);
             }
 
-            //hand the cache bookkeeping to the render thread - mainCache is guarded by requestSyncRoot and we
+            //hand the cache bookkeeping to the render thread - externalCache is guarded by requestSyncRoot and we
             //hold updateSyncRoot here, so taking it would create a new lock ordering we don't need.
-            externalLoadResults.Enqueue(new ExternalLoadResult()
+            //Only for files still registered as external content at this path: anything else (unregistered or
+            //re-pointed since it was queued - both already removed from externalCache - or a loose file that was
+            //never external content) has nothing in externalCache to reconcile, and must not have its MemoryUsage
+            //rewritten or feed the external size estimate.
+            if (fref != null)
             {
-                File = file,
-                Key = key,
-                FilePath = path,
-                Success = ok,
-                MemoryUsage = memuse,
-            });
+                externalLoadResults.Enqueue(new ExternalLoadResult()
+                {
+                    File = file,
+                    Key = key,
+                    FilePath = path,
+                    Success = ok,
+                    MemoryUsage = memuse,
+                    DiskSize = disksize,
+                });
+            }
 
             return ok;
         }
@@ -2334,17 +2464,60 @@ namespace CodeWalker.GameFiles
                 if (res == null) continue;
                 if (res.Success)
                 {
-                    //TryAdd accounted this file as 0 bytes (its synthetic entry had no sizes yet) - correct
-                    //the cache's running total now, so external content is actually eligible for eviction.
-                    mainCache.UpdateMemoryUsage(res.Key, res.File, res.MemoryUsage);
+                    //TryAdd accounted this file at its provisional estimate (its synthetic entry had no sizes yet) -
+                    //correct the cache's running total to the real size now.
+                    //(value-comparing: if this instance was evicted/replaced meanwhile, nothing is accounted)
+                    externalCache.UpdateMemoryUsage(res.Key, res.File, res.MemoryUsage);
+                    RecordExternalSize(res.Key.Type, res.MemoryUsage, res.DiskSize);
                 }
                 else
                 {
                     //drop the failed instance, otherwise the "in cache but not loaded" branch of GetYdr etc
                     //would re-queue it every single frame. ExternalFileRef.LoadFailed (set on the content
                     //thread) then stops TryStartExternalFileLoad from ever creating a new one.
-                    mainCache.RemoveIf(res.Key, res.File);
+                    externalCache.RemoveIf(res.Key, res.File);
                 }
+            }
+        }
+
+        private static int ExternalSizeSlot(GameFileType type)
+        {
+            switch (type)
+            {
+                case GameFileType.Ydr: return 0;
+                case GameFileType.Ydd: return 1;
+                case GameFileType.Ytd: return 2;
+                case GameFileType.Yft: return 3;
+                default: return -1;
+            }
+        }
+        /// <summary>Provisional MemoryUsage for a not-yet-loaded external placeholder. Requires requestSyncRoot.</summary>
+        private long EstimateExternalSize(GameFileType type, long diskSize)
+        {
+            int i = ExternalSizeSlot(type);
+            if (diskSize > 0)
+            {
+                double ratio = ExternalMemDiskRatioDefault;
+                if ((i >= 0) && (externalRatioDiskSum[i] > 0) && (externalRatioMemSum[i] > 0))
+                {
+                    ratio = (double)externalRatioMemSum[i] / externalRatioDiskSum[i];
+                }
+                return Math.Max(1, (long)(diskSize * ratio));
+            }
+            if ((i < 0) || (externalSizeCount[i] <= 0)) return ExternalSizeEstimateDefault;
+            return Math.Max(1, externalSizeSum[i] / externalSizeCount[i]);
+        }
+        /// <summary>Feeds the stats used by EstimateExternalSize. Requires requestSyncRoot.</summary>
+        private void RecordExternalSize(GameFileType type, long size, long diskSize)
+        {
+            int i = ExternalSizeSlot(type);
+            if ((i < 0) || (size <= 0)) return;
+            externalSizeSum[i] += size;
+            externalSizeCount[i]++;
+            if (diskSize > 0)
+            {
+                externalRatioMemSum[i] += size;
+                externalRatioDiskSum[i] += diskSize;
             }
         }
 
@@ -2354,11 +2527,48 @@ namespace CodeWalker.GameFiles
 
         public void TryLoadEnqueue(GameFile gf)
         {
-            if (((!gf.Loaded)) && (requestQueue.Count < 10))// && (!gf.LoadQueued)
+            if (IsExternalRequest(gf))
+            {
+                TryLoadEnqueueExternal(gf); //backdrop content never takes a slot in the normal lane
+                return;
+            }
+            if (((!gf.Loaded)) && (requestQueue.Count < MaxQueuedRequests))// && (!gf.LoadQueued)
             {
                 requestQueue.Enqueue(gf);
                 gf.LoadQueued = true;
             }
+        }
+
+        /// <summary>
+        /// Queues an external (backdrop) file on the low-priority lane. De-duplicated with GameFile.LoadQueued
+        /// (unused by the normal lane), so MaxQueuedExternalRequests counts distinct files. LoadQueued is set
+        /// BEFORE the enqueue and cleared by the content thread right after its dequeue, so the clear always
+        /// happens after the matching set - a file can never be left flagged as queued while it isn't.
+        /// Lock-free (ConcurrentQueue + volatile flag); in practice called under requestSyncRoot.
+        /// </summary>
+        private void TryLoadEnqueueExternal(GameFile gf)
+        {
+            if (gf.Loaded) return;
+            if (gf.LoadQueued) return; //already waiting in the external lane
+            if (externalRequestQueue.Count >= MaxQueuedExternalRequests) return; //full - the next request for it retries
+            gf.LoadQueued = true;
+            externalRequestQueue.Enqueue(gf);
+        }
+
+        /// <summary>
+        /// True if this instance is external (backdrop) content that is still registered at the path it was created
+        /// for: no backing RPF (entry.File == null - the same test LoadFile uses to send it to LoadExternalFile) and
+        /// a matching externalFiles registration. Lock-free, safe from any thread.
+        /// </summary>
+        private bool IsExternalRequest(GameFile gf)
+        {
+            if (gf == null) return false;
+            var entry = gf.RpfFileEntry;
+            if ((entry == null) || (entry.File != null)) return false; //lives in an RPF - normal content
+            if (string.IsNullOrEmpty(gf.FilePath)) return false;
+            ExternalFileRef fref;
+            if (!externalFiles.TryGetValue(gf.Key, out fref) || (fref == null)) return false;
+            return string.Equals(fref.FilePath, gf.FilePath, StringComparison.Ordinal);
         }
 
 
@@ -2394,6 +2604,14 @@ namespace CodeWalker.GameFiles
                 {
                     return pgf as YdrFile;
                 }
+                //project > external (pack) > base, as in GetArchetype. Checked BEFORE mainCache, so a base instance that
+                //was cached before the pack was switched on is bypassed (it just ages out). null = not registered or
+                //LoadFailed -> fall through to the base game.
+                var xgf = GetExternalFile(key);
+                if (xgf != null)
+                {
+                    return xgf as YdrFile;
+                }
                 YdrFile ydr = mainCache.TryGet(key) as YdrFile;
                 if (ydr == null)
                 {
@@ -2413,7 +2631,7 @@ namespace CodeWalker.GameFiles
                     }
                     else
                     {
-                        ydr = TryStartExternalFileLoad(key) as YdrFile; //loose file on disk, outside any RPF
+                        //(registered external content was already tried above, before the base game)
                         //ErrorLog("Drawable not found: " + JenkIndex.GetString(hash)); //too spammy...
                     }
                 }
@@ -2434,6 +2652,12 @@ namespace CodeWalker.GameFiles
                 {
                     return pgf as YddFile;
                 }
+                //project > external (pack) > base - see GetYdr
+                var xgf = GetExternalFile(key);
+                if (xgf != null)
+                {
+                    return xgf as YddFile;
+                }
                 YddFile ydd = mainCache.TryGet(key) as YddFile;
                 if (ydd == null)
                 {
@@ -2453,7 +2677,7 @@ namespace CodeWalker.GameFiles
                     }
                     else
                     {
-                        ydd = TryStartExternalFileLoad(key) as YddFile; //loose file on disk, outside any RPF
+                        //(registered external content was already tried above, before the base game)
                         //ErrorLog("Drawable dictionary not found: " + JenkIndex.GetString(hash)); //too spammy...
                     }
                 }
@@ -2474,6 +2698,12 @@ namespace CodeWalker.GameFiles
                 {
                     return pgf as YtdFile;
                 }
+                //project > external (pack) > base - see GetYdr
+                var xgf = GetExternalFile(key);
+                if (xgf != null)
+                {
+                    return xgf as YtdFile;
+                }
                 YtdFile ytd = mainCache.TryGet(key) as YtdFile;
                 if (ytd == null)
                 {
@@ -2493,7 +2723,7 @@ namespace CodeWalker.GameFiles
                     }
                     else
                     {
-                        ytd = TryStartExternalFileLoad(key) as YtdFile; //loose file on disk, outside any RPF
+                        //(registered external content was already tried above, before the base game)
                         //ErrorLog("Texture dictionary not found: " + JenkIndex.GetString(hash)); //too spammy...
                     }
                 }
@@ -2545,11 +2775,18 @@ namespace CodeWalker.GameFiles
             lock (requestSyncRoot)
             {
                 var key = new GameFileCacheKey(hash, GameFileType.Yft);
-                YftFile yft = mainCache.TryGet(key) as YftFile;
                 if (projectFiles.TryGetValue(key, out GameFile pgf))
                 {
                     return pgf as YftFile;
                 }
+                //project > external (pack) > base - see GetYdr. (Upstream looked mainCache up before projectFiles here;
+                //now project first, like the other getters, so a project yft no longer keeps a base copy warm in mainCache.)
+                var xgf = GetExternalFile(key);
+                if (xgf != null)
+                {
+                    return xgf as YftFile;
+                }
+                YftFile yft = mainCache.TryGet(key) as YftFile;
                 if (yft == null)
                 {
                     var e = GetYftEntry(hash);
@@ -2568,7 +2805,7 @@ namespace CodeWalker.GameFiles
                     }
                     else
                     {
-                        yft = TryStartExternalFileLoad(key) as YftFile; //loose file on disk, outside any RPF
+                        //(registered external content was already tried above, before the base game)
                         //ErrorLog("Yft not found: " + JenkIndex.GetString(hash)); //too spammy...
                     }
                 }
@@ -2814,6 +3051,8 @@ namespace CodeWalker.GameFiles
             {
                 DrainExternalLoadResults(); //before Compact, so evictions see the real sizes
                 mainCache.BeginFrame();
+                externalCache.MaxMemoryUsage = ExternalCacheSize; //public field - pick up runtime changes
+                externalCache.BeginFrame(); //advances CurrentTime (what TryGet stamps LastUseTime with) and evicts by age
             }
         }
 
@@ -2827,7 +3066,10 @@ namespace CodeWalker.GameFiles
 
             int itemcount = 0;
 
-            while (requestQueue.TryDequeue(out req) && (itemcount < MaxItemsPerLoop))
+            //1) normal lane (base game, DLC, mods, project, peds...) - always first.
+            //The budget is checked BEFORE dequeuing: the old `TryDequeue(out req) && (itemcount < MaxItemsPerLoop)`
+            //pulled one more request off the queue every time the budget was already spent, and discarded it.
+            while ((itemcount < MaxItemsPerLoop) && requestQueue.TryDequeue(out req))
             {
                 //process content requests.
                 if (req.Loaded)
@@ -2835,13 +3077,56 @@ namespace CodeWalker.GameFiles
 
                 if ((req.LastUseTime - DateTime.Now).TotalSeconds > 0.5)
                     continue; //hasn't been requested lately..! ignore, will try again later if necessary
+                //(NB operands reversed so this never fires - deliberately left as-is for the normal lane. The
+                //corrected filter is only enabled for the external lane below.)
 
                 itemcount++;
-                //if (!loadedsomething)
-                //{
-                //UpdateStatus("Loading " + req.RpfFileEntry.Name + "...");
-                //}
+                LoadRequest(req);
+            }
 
+            //2) external (backdrop) lane - only after the normal lane has had its turn this loop.
+            int extcount = 0;
+            while ((extcount < MaxExternalItemsPerLoop) && externalRequestQueue.TryDequeue(out req))
+            {
+                req.LoadQueued = false; //out of the queue now - a later request for it may queue it again
+
+                if (req.Loaded)
+                    continue; //already loaded (eg by a duplicate queued just after a dequeue)
+
+                if (!IsExternalRequest(req))
+                    continue; //unregistered, or re-registered to another path, since it was queued - don't touch the disk
+
+                ExternalFileRef fref;
+                if (externalFiles.TryGetValue(req.Key, out fref) && (fref != null) && fref.LoadFailed)
+                    continue; //known bad (its failed instance is removed from externalCache by the next drain)
+
+                var stale = ExternalRequestStaleSeconds;
+                if ((stale > 0) && ((DateTime.Now - req.LastUseTime).TotalSeconds > stale))
+                    continue; //nobody has asked for it lately (camera moved on) - its next request re-queues it
+
+                extcount++;
+                LoadRequest(req);
+
+                if (!requestQueue.IsEmpty)
+                    break; //normal work arrived while we were loading backdrop - go serve it first
+            }
+
+            //whether or not we need another content thread loop. Must account for BOTH lanes, otherwise the
+            //content thread sleeps while backdrop work is waiting.
+            bool itemsStillPending = (!requestQueue.IsEmpty) || (!externalRequestQueue.IsEmpty);
+
+
+            Monitor.Exit(updateSyncRoot);
+
+
+            return itemsStillPending;
+        }
+
+        /// <summary>
+        /// Loads one dequeued request (either lane). Content thread only, with updateSyncRoot held.
+        /// </summary>
+        private void LoadRequest(GameFile req)
+        {
 #if !DEBUG
                 try
                 {
@@ -2886,32 +3171,20 @@ namespace CodeWalker.GameFiles
                         break;
                 }
 
-                UpdateStatus((req.Loaded ? "Loaded " : "Error loading ") + req.ToString());
+                UpdateStatus?.Invoke((req.Loaded ? "Loaded " : "Error loading ") + req.ToString());
 
                 if (!req.Loaded)
                 {
-                    ErrorLog("Error loading " + req.ToString());
+                    ErrorLog?.Invoke("Error loading " + req.ToString());
                 }
 #if !DEBUG
                 }
                 catch (Exception ex)
                 {
-                    ErrorLog($"Failed to load file {req.Name}: {ex.Message}");
+                    ErrorLog?.Invoke($"Failed to load file {req.Name}: {ex.Message}");
                     //TODO: try to stop subsequent attempts to load this!
                 }
 #endif
-
-                //loadedsomething = true;
-            }
-
-            //whether or not we need another content thread loop
-            bool itemsStillPending = (itemcount >= MaxItemsPerLoop);
-
-
-            Monitor.Exit(updateSyncRoot);
-
-
-            return itemsStillPending;
         }
 
 

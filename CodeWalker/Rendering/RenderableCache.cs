@@ -196,13 +196,13 @@ namespace CodeWalker.Rendering
             waterquads.RenderThreadSync(currentDevice);
         }
 
-        public Renderable GetRenderable(DrawableBase drawable)
+        public Renderable GetRenderable(DrawableBase drawable, bool lowPriority = false)
         {
-            return renderables.Get(drawable);
+            return renderables.Get(drawable, lowPriority);
         }
-        public RenderableTexture GetRenderableTexture(Texture texture)
+        public RenderableTexture GetRenderableTexture(Texture texture, bool lowPriority = false)
         {
-            return textures.Get(texture);
+            return textures.Get(texture, lowPriority);
         }
         public RenderableBoundComposite GetRenderableBoundComp(Bounds bound)
         {
@@ -261,6 +261,7 @@ namespace CodeWalker.Rendering
         public TKey Key;
         public volatile bool IsLoaded = false;
         public volatile bool LoadQueued = false;
+        public bool LoadQueuedLow = false; //queued at low priority (backdrop content) - only use from render thread!
         public long LastUseTime = 0;
         //public DateTime LastUseTime { get; set; }
         public long DataSize { get; set; }
@@ -273,11 +274,13 @@ namespace CodeWalker.Rendering
     public class RenderableCacheLookup<TKey, TVal> where TVal: RenderableCacheItem<TKey>, new()
     {
         private ConcurrentQueue<TVal> itemsToLoad = new ConcurrentQueue<TVal>();
+        private ConcurrentQueue<TVal> itemsToLoadLow = new ConcurrentQueue<TVal>();//low priority (backdrop) items, only loaded when itemsToLoad is empty
         private ConcurrentQueue<TVal> itemsToUnload = new ConcurrentQueue<TVal>();
         private ConcurrentQueue<TKey> keysToInvalidate = new ConcurrentQueue<TKey>();
         private LinkedList<TVal> loadeditems = new LinkedList<TVal>();//only use from content thread!
         private Dictionary<TKey, TVal> cacheitems = new Dictionary<TKey, TVal>();//only use from render thread!
         public long CacheLimit;
+        public long LowPriorityReserve;//cache space low priority items can't use, kept free for normal priority items
         public long CacheUse = 0;
         public double CacheTime;
         public int LoadedCount = 0;//temporary, per loop
@@ -286,6 +289,7 @@ namespace CodeWalker.Rendering
         public RenderableCacheLookup(long limit, double time)
         {
             CacheLimit = limit;
+            LowPriorityReserve = limit / 8;
             CacheTime = time;
             LastFrameTime = DateTime.UtcNow.ToBinary();
         }
@@ -294,7 +298,7 @@ namespace CodeWalker.Rendering
         {
             get
             {
-                return itemsToLoad.Count;
+                return itemsToLoad.Count + itemsToLoadLow.Count;
             }
         }
         public int CurrentLoadedCount
@@ -315,6 +319,7 @@ namespace CodeWalker.Rendering
         public void Clear()
         {
             itemsToLoad = new ConcurrentQueue<TVal>();
+            itemsToLoadLow = new ConcurrentQueue<TVal>();
             foreach (TVal rnd in loadeditems)
             {
                 rnd.Unload();
@@ -329,13 +334,24 @@ namespace CodeWalker.Rendering
 
         public int LoadProc(Device device, int maxitemsperloop)
         {
-            TVal item;
             LoadedCount = 0;
-            while (itemsToLoad.TryDequeue(out item))
+            LoadQueueProc(device, itemsToLoad, maxitemsperloop, 0);
+            if (LoadedCount < maxitemsperloop) //low priority (backdrop) items only get what normal priority items leave
+            {
+                LoadQueueProc(device, itemsToLoadLow, maxitemsperloop, LowPriorityReserve);
+            }
+            return LoadedCount;
+        }
+
+        private void LoadQueueProc(Device device, ConcurrentQueue<TVal> queue, int maxitemsperloop, long reserve)
+        {
+            TVal item;
+            while (queue.TryDequeue(out item))
             {
                 if (item.IsLoaded) continue; //don't load it again...
+                if (!item.LoadQueued) continue; //stale entry left in the other queue by a promotion (see Get)
                 LoadedCount++;
-                long gcachefree = CacheLimit - Interlocked.Read(ref CacheUse);// CacheUse;
+                long gcachefree = CacheLimit - reserve - Interlocked.Read(ref CacheUse);// CacheUse;
                 if (gcachefree > item.DataSize)
                 {
                     try
@@ -355,7 +371,6 @@ namespace CodeWalker.Rendering
                 }
                 if (LoadedCount >= maxitemsperloop) break;
             }
-            return LoadedCount;
         }
 
         public void UnloadProc()
@@ -403,14 +418,14 @@ namespace CodeWalker.Rendering
                 {
                     cacheitems.Remove(item.Key);
                 }
+                item.LoadQueued = false; //before Unload, so LoadProc skips any stale queue entry for it (it checks IsLoaded then LoadQueued)
                 item.Unload();
-                item.LoadQueued = false;
                 Interlocked.Add(ref CacheUse, -item.DataSize);
             }
 
         }
 
-        public TVal Get(TKey key)
+        public TVal Get(TKey key, bool lowPriority = false)
         {
             if (key == null) return null;
             TVal item = null;
@@ -421,10 +436,20 @@ namespace CodeWalker.Rendering
                 cacheitems.Add(key, item);
             }
             Interlocked.Exchange(ref item.LastUseTime, LastFrameTime);
-            if ((!item.IsLoaded) && (!item.LoadQueued))// || 
+            if (!item.IsLoaded)
             {
-                item.LoadQueued = true;
-                itemsToLoad.Enqueue(item);
+                if (!item.LoadQueued)
+                {
+                    item.LoadQueued = true;
+                    item.LoadQueuedLow = lowPriority;
+                    if (lowPriority) itemsToLoadLow.Enqueue(item);
+                    else itemsToLoad.Enqueue(item);
+                }
+                else if (item.LoadQueuedLow && !lowPriority) //shared item queued by low priority content, now wanted at normal priority: promote it.
+                {
+                    item.LoadQueuedLow = false;
+                    itemsToLoad.Enqueue(item); //the old low priority entry stays behind, LoadProc skips it once loaded
+                }
             }
             return item;
         }

@@ -87,6 +87,7 @@ namespace CodeWalker.Rendering
         private List<YmapEntityDef> renderworldentities = new List<YmapEntityDef>(); //used when rendering world view.
         private List<RenderableEntity> renderworldrenderables = new List<RenderableEntity>();
         private Dictionary<Archetype, Renderable> ArchetypeRenderables = new Dictionary<Archetype, Renderable>();
+        private Dictionary<Archetype, Renderable> BackdropArchetypeRenderables = new Dictionary<Archetype, Renderable>();//requested at low priority by locked backdrop entities only
         private Dictionary<YmapEntityDef, Renderable> RequiredParents = new Dictionary<YmapEntityDef, Renderable>();
         private List<YmapEntityDef> RenderEntities = new List<YmapEntityDef>();
 
@@ -1857,6 +1858,7 @@ namespace CodeWalker.Rendering
             VisibleYmaps.Clear();
             VisibleMlos.Clear();
             ArchetypeRenderables.Clear();
+            BackdropArchetypeRenderables.Clear();
             RequiredParents.Clear();
             RenderEntities.Clear();
 
@@ -1903,7 +1905,7 @@ namespace CodeWalker.Rendering
                 }
                 else
                 {
-                    var rndbl = GetArchetypeRenderable(ent.Archetype);
+                    var rndbl = GetArchetypeRenderable(ent.Archetype, ent);
                     ent.LodManagerRenderable = rndbl;
                     if (rndbl != null)
                     {
@@ -1920,14 +1922,14 @@ namespace CodeWalker.Rendering
                             while (pcnode != null)
                             {
                                 var pcent = pcnode.Value;
-                                var pcrndbl = (pcent == ent) ? rndbl : GetArchetypeRenderable(pcent.Archetype);
+                                var pcrndbl = (pcent == ent) ? rndbl : GetArchetypeRenderable(pcent.Archetype, pcent);
                                 pcent.LodManagerRenderable = pcrndbl;
                                 pcnode = pcnode.Next;
                                 allok = allok && (pcrndbl != null);
                             }
                             if (!allok)
                             {
-                                rndbl = GetArchetypeRenderable(pent.Archetype);
+                                rndbl = GetArchetypeRenderable(pent.Archetype, pent);
                                 pent.LodManagerRenderable = rndbl;
                                 if (rndbl != null)
                                 {
@@ -1963,7 +1965,7 @@ namespace CodeWalker.Rendering
                 for (int i = 0; i < renderworldentities.Count; i++)
                 {
                     var ent = renderworldentities[i];
-                    var rndbl = GetArchetypeRenderable(ent.Archetype);
+                    var rndbl = GetArchetypeRenderable(ent.Archetype, ent);
                     ent.LodManagerRenderable = rndbl;
                     if (rndbl != null)
                     {
@@ -2501,22 +2503,36 @@ namespace CodeWalker.Rendering
 
 
 
-        private Renderable GetArchetypeRenderable(Archetype arch)
+        private Renderable GetArchetypeRenderable(Archetype arch, YmapEntityDef entity = null)
         {
             if (arch == null) return null;
 
             Renderable rndbl = null;
             if (!ArchetypeRenderables.TryGetValue(arch, out rndbl))
             {
-                var drawable = gameFileCache.TryGetDrawable(arch);
-                rndbl = TryGetRenderable(arch, drawable);
-                ArchetypeRenderables[arch] = rndbl;
+                //backdrop requests are cached separately, so a non-backdrop entity sharing the archetype
+                //still makes its own normal priority request this frame (promoting any shared uploads).
+                bool backdrop = IsBackdropEntity(entity);
+                if (!backdrop || !BackdropArchetypeRenderables.TryGetValue(arch, out rndbl))
+                {
+                    var drawable = gameFileCache.TryGetDrawable(arch);
+                    rndbl = TryGetRenderable(arch, drawable, lowPriority: backdrop);
+                    if (backdrop) BackdropArchetypeRenderables[arch] = rndbl;
+                    else ArchetypeRenderables[arch] = rndbl;
+                }
             }
             if ((rndbl != null) && rndbl.IsLoaded && (rndbl.AllTexturesLoaded || !waitforchildrentoload))
             {
                 return rndbl;
             }
             return null;
+        }
+
+        private static bool IsBackdropEntity(YmapEntityDef entity)
+        {
+            //locked backdrop content gets its GPU uploads queued at low priority
+            var eymap = entity?.Ymap ?? entity?.MloParent?.Ymap;
+            return (eymap != null) && eymap.IsLockedBackdrop;
         }
 
 
@@ -2692,7 +2708,7 @@ namespace CodeWalker.Rendering
 
                 var arch = batch.Archetype;
                 var drbl = gameFileCache.TryGetDrawable(arch);
-                var rndbl = TryGetRenderable(arch, drbl);
+                var rndbl = TryGetRenderable(arch, drbl, lowPriority: ymap.IsLockedBackdrop);
                 var instb = renderableCache.GetRenderableInstanceBatch(batch);
                 if (rndbl == null) continue; //no renderable
                 if (!(rndbl.IsLoaded && (rndbl.AllTexturesLoaded || !waitforchildrentoload))) continue; //not loaded yet
@@ -3137,7 +3153,7 @@ namespace CodeWalker.Rendering
             if (rndbl == null)
             {
                 var drawable = gameFileCache.TryGetDrawable(arche);
-                rndbl = TryGetRenderable(arche, drawable);
+                rndbl = TryGetRenderable(arche, drawable, lowPriority: IsBackdropEntity(entity));
             }
 
             if (rndbl != null)
@@ -3160,7 +3176,7 @@ namespace CodeWalker.Rendering
                     var frag = fd.OwnerFragment;
                     if ((frag != null) && (frag.DrawableCloth != null)) //cloth...
                     {
-                        rndbl = TryGetRenderable(arche, frag.DrawableCloth);
+                        rndbl = TryGetRenderable(arche, frag.DrawableCloth, lowPriority: IsBackdropEntity(entity));
                         if (rndbl != null)
                         {
                             bool res2 = RenderRenderable(rndbl, arche, entity);
@@ -3181,7 +3197,7 @@ namespace CodeWalker.Rendering
             if (drawable == null)
                 return false;
 
-            Renderable rndbl = TryGetRenderable(arche, drawable, txdHash, txdExtra, diffOverride);
+            Renderable rndbl = TryGetRenderable(arche, drawable, txdHash, txdExtra, diffOverride, IsBackdropEntity(entity));
             if (rndbl == null)
                 return false;
 
@@ -3658,7 +3674,7 @@ namespace CodeWalker.Rendering
 
 
 
-        private Renderable TryGetRenderable(Archetype arche, DrawableBase drawable, uint txdHash = 0, TextureDictionary txdExtra = null, Texture diffOverride = null)
+        private Renderable TryGetRenderable(Archetype arche, DrawableBase drawable, uint txdHash = 0, TextureDictionary txdExtra = null, Texture diffOverride = null, bool lowPriority = false)
         {
             if (drawable == null) return null;
             //BUG: only last texdict used!! needs to cache textures per archetype........
@@ -3680,7 +3696,7 @@ namespace CodeWalker.Rendering
             }
 
 
-            Renderable rndbl = renderableCache.GetRenderable(drawable);
+            Renderable rndbl = renderableCache.GetRenderable(drawable, lowPriority);
             if (rndbl == null) return null;
 
             if ((clipDict != 0) && (rndbl.ClipDict == null))
@@ -3898,7 +3914,7 @@ namespace CodeWalker.Rendering
 
                             if (ttex != null) //ensure renderable texture
                             {
-                                rdtex = renderableCache.GetRenderableTexture(ttex);
+                                rdtex = renderableCache.GetRenderableTexture(ttex, lowPriority);
                             }
 
                             //if ((rdtex != null) && (rdtex.IsLoaded == false))
@@ -3941,7 +3957,7 @@ namespace CodeWalker.Rendering
                                 }
                                 if (hdtex != null)
                                 {
-                                    rhdtex = renderableCache.GetRenderableTexture(hdtex);
+                                    rhdtex = renderableCache.GetRenderableTexture(hdtex, lowPriority);
                                 }
                             }
                             geom.RenderableTexturesHD[i] = rhdtex;

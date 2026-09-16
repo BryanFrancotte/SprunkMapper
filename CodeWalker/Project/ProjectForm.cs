@@ -26,7 +26,6 @@ namespace CodeWalker.Project
         public ProjectExplorerPanel ProjectExplorer { get; set; }
         public ProjectPanel PreviewPanel { get; set; }
         public DeleteGrassPanel DeleteGrassPanel { get; set; }
-        public RelocateResourcePanel RelocateResourcePanel { get; set; }
 
         public GameFileCache GameFileCache { get; private set; }
         public RpfManager RpfMan { get; private set; }
@@ -365,13 +364,6 @@ namespace CodeWalker.Project
             ShowPanel(promote,
                 () => { DeleteGrassPanel = new DeleteGrassPanel(this); return DeleteGrassPanel; }, //createFunc
                 (panel) => { panel.SetProject(CurrentProjectFile); panel.IsFloat = true; }, //updateFunc
-                (panel) => { return true; }); //findFunc
-        }
-        public void ShowRelocateResourcePanel(bool promote)
-        {
-            ShowPanel(promote,
-                () => { RelocateResourcePanel = new RelocateResourcePanel(this); return RelocateResourcePanel; }, //createFunc
-                (panel) => { panel.SetProject(CurrentProjectFile); }, //updateFunc
                 (panel) => { return true; }); //findFunc
         }
         public void ShowGenerateLODLightsPanel(bool promote)
@@ -9840,10 +9832,6 @@ namespace CodeWalker.Project
         private void ToolsDeleteGrassMenu_Click(object sender, EventArgs e)
         {
             ShowDeleteGrassPanel(true);
-        }
-        private void ToolsRelocateResourceMenu_Click(object sender, EventArgs e)
-        {
-            ShowRelocateResourcePanel(false);
         }
         private void OptionsRenderGtavMapMenu_Click(object sender, EventArgs e)
         {

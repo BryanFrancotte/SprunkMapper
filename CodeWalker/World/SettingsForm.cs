@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -73,6 +74,8 @@ namespace CodeWalker.World
         private void LoadAdvancedSettings()
         {
             FolderTextBox.Text = GTAFolder.CurrentGTAFolder;
+            RoxwoodFolderTextBox.Text = Settings.Default.RoxwoodFolder;
+            LasVenturasFolderTextBox.Text = Settings.Default.LasVenturasFolder;
             ExcludeFoldersTextBox.Text = Settings.Default.ExcludeFolders;
             ShadowCascadesUpDown.Value = Settings.Default.ShadowCascades;
             CacheSizeUpDown.Value = Math.Min(Math.Max(Settings.Default.CacheSize / 1048576, CacheSizeUpDown.Minimum), CacheSizeUpDown.Maximum);
@@ -275,6 +278,43 @@ namespace CodeWalker.World
         {
             GTAFolder.UpdateGTAFolder(false);
             FolderTextBox.Text = GTAFolder.CurrentGTAFolder;
+        }
+
+        private void RoxwoodFolderBrowseButton_Click(object sender, EventArgs e)
+        {
+            var folder = BrowseForFolder(RoxwoodFolderTextBox.Text);
+            if (folder == null) return;
+            RoxwoodFolderTextBox.Text = folder;
+        }
+
+        private void RoxwoodFolderTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Settings.Default.RoxwoodFolder = RoxwoodFolderTextBox.Text;
+        }
+
+        private void LasVenturasFolderBrowseButton_Click(object sender, EventArgs e)
+        {
+            var folder = BrowseForFolder(LasVenturasFolderTextBox.Text);
+            if (folder == null) return;
+            LasVenturasFolderTextBox.Text = folder;
+        }
+
+        private void LasVenturasFolderTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Settings.Default.LasVenturasFolder = LasVenturasFolderTextBox.Text;
+        }
+
+        private string BrowseForFolder(string currentFolder)
+        {
+            using (var fbd = new FolderBrowserDialog())
+            {
+                if (!string.IsNullOrEmpty(currentFolder) && Directory.Exists(currentFolder))
+                {
+                    fbd.SelectedPath = currentFolder;
+                }
+                if (fbd.ShowDialogNew() != DialogResult.OK) return null;
+                return fbd.SelectedPath;
+            }
         }
 
         private void ExcludeFoldersTextBox_TextChanged(object sender, EventArgs e)

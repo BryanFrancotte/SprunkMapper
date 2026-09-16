@@ -76,6 +76,12 @@
             this.label6 = new System.Windows.Forms.Label();
             this.FolderBrowseButton = new System.Windows.Forms.Button();
             this.FolderTextBox = new System.Windows.Forms.TextBox();
+            this.RoxwoodFolderLabel = new System.Windows.Forms.Label();
+            this.RoxwoodFolderTextBox = new System.Windows.Forms.TextBox();
+            this.RoxwoodFolderBrowseButton = new System.Windows.Forms.Button();
+            this.LasVenturasFolderLabel = new System.Windows.Forms.Label();
+            this.LasVenturasFolderTextBox = new System.Windows.Forms.TextBox();
+            this.LasVenturasFolderBrowseButton = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
             this.DoneButton = new System.Windows.Forms.Button();
             this.SaveButton = new System.Windows.Forms.Button();
@@ -107,7 +113,7 @@
             this.MainTabControl.Location = new System.Drawing.Point(12, 12);
             this.MainTabControl.Name = "MainTabControl";
             this.MainTabControl.SelectedIndex = 0;
-            this.MainTabControl.Size = new System.Drawing.Size(460, 451);
+            this.MainTabControl.Size = new System.Drawing.Size(460, 517);
             this.MainTabControl.TabIndex = 0;
             // 
             // ControlsTabPage
@@ -117,7 +123,7 @@
             this.ControlsTabPage.Location = new System.Drawing.Point(4, 22);
             this.ControlsTabPage.Name = "ControlsTabPage";
             this.ControlsTabPage.Padding = new System.Windows.Forms.Padding(3);
-            this.ControlsTabPage.Size = new System.Drawing.Size(452, 425);
+            this.ControlsTabPage.Size = new System.Drawing.Size(452, 491);
             this.ControlsTabPage.TabIndex = 0;
             this.ControlsTabPage.Text = "Controls";
             this.ControlsTabPage.UseVisualStyleBackColor = true;
@@ -132,7 +138,7 @@
             this.groupBox2.Controls.Add(this.label2);
             this.groupBox2.Controls.Add(this.CameraSmoothingUpDown);
             this.groupBox2.Controls.Add(this.CameraSensitivityUpDown);
-            this.groupBox2.Location = new System.Drawing.Point(6, 322);
+            this.groupBox2.Location = new System.Drawing.Point(6, 388);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(440, 90);
             this.groupBox2.TabIndex = 10;
@@ -217,7 +223,7 @@
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Location = new System.Drawing.Point(6, 6);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(440, 309);
+            this.groupBox1.Size = new System.Drawing.Size(440, 375);
             this.groupBox1.TabIndex = 5;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Key bindings";
@@ -245,7 +251,7 @@
             this.KeyBindingsListView.HideSelection = false;
             this.KeyBindingsListView.Location = new System.Drawing.Point(6, 19);
             this.KeyBindingsListView.Name = "KeyBindingsListView";
-            this.KeyBindingsListView.Size = new System.Drawing.Size(237, 284);
+            this.KeyBindingsListView.Size = new System.Drawing.Size(237, 350);
             this.KeyBindingsListView.TabIndex = 3;
             this.KeyBindingsListView.UseCompatibleStateImageBehavior = false;
             this.KeyBindingsListView.View = System.Windows.Forms.View.Details;
@@ -325,11 +331,17 @@
             this.AdvancedTabPage.Controls.Add(this.label6);
             this.AdvancedTabPage.Controls.Add(this.FolderBrowseButton);
             this.AdvancedTabPage.Controls.Add(this.FolderTextBox);
+            this.AdvancedTabPage.Controls.Add(this.RoxwoodFolderLabel);
+            this.AdvancedTabPage.Controls.Add(this.RoxwoodFolderTextBox);
+            this.AdvancedTabPage.Controls.Add(this.RoxwoodFolderBrowseButton);
+            this.AdvancedTabPage.Controls.Add(this.LasVenturasFolderLabel);
+            this.AdvancedTabPage.Controls.Add(this.LasVenturasFolderTextBox);
+            this.AdvancedTabPage.Controls.Add(this.LasVenturasFolderBrowseButton);
             this.AdvancedTabPage.Controls.Add(this.label5);
             this.AdvancedTabPage.Location = new System.Drawing.Point(4, 22);
             this.AdvancedTabPage.Name = "AdvancedTabPage";
             this.AdvancedTabPage.Padding = new System.Windows.Forms.Padding(3);
-            this.AdvancedTabPage.Size = new System.Drawing.Size(452, 425);
+            this.AdvancedTabPage.Size = new System.Drawing.Size(452, 491);
             this.AdvancedTabPage.TabIndex = 1;
             this.AdvancedTabPage.Text = "Advanced";
             this.AdvancedTabPage.UseVisualStyleBackColor = true;
@@ -337,7 +349,7 @@
             // label22
             // 
             this.label22.AutoSize = true;
-            this.label22.Location = new System.Drawing.Point(184, 337);
+            this.label22.Location = new System.Drawing.Point(184, 403);
             this.label22.Name = "label22";
             this.label22.Size = new System.Drawing.Size(246, 13);
             this.label22.TabIndex = 76;
@@ -350,7 +362,7 @@
             0,
             0,
             0});
-            this.CollisionCacheSizeUpDown.Location = new System.Drawing.Point(110, 335);
+            this.CollisionCacheSizeUpDown.Location = new System.Drawing.Point(110, 401);
             this.CollisionCacheSizeUpDown.Maximum = new decimal(new int[] {
             512,
             0,
@@ -375,7 +387,7 @@
             // label23
             // 
             this.label23.AutoSize = true;
-            this.label23.Location = new System.Drawing.Point(6, 337);
+            this.label23.Location = new System.Drawing.Point(6, 403);
             this.label23.Name = "label23";
             this.label23.Size = new System.Drawing.Size(81, 13);
             this.label23.TabIndex = 75;
@@ -384,7 +396,7 @@
             // label20
             // 
             this.label20.AutoSize = true;
-            this.label20.Location = new System.Drawing.Point(184, 305);
+            this.label20.Location = new System.Drawing.Point(184, 371);
             this.label20.Name = "label20";
             this.label20.Size = new System.Drawing.Size(236, 13);
             this.label20.TabIndex = 73;
@@ -397,7 +409,7 @@
             0,
             0,
             0});
-            this.TextureCacheSizeUpDown.Location = new System.Drawing.Point(110, 303);
+            this.TextureCacheSizeUpDown.Location = new System.Drawing.Point(110, 369);
             this.TextureCacheSizeUpDown.Maximum = new decimal(new int[] {
             8192,
             0,
@@ -422,7 +434,7 @@
             // label21
             // 
             this.label21.AutoSize = true;
-            this.label21.Location = new System.Drawing.Point(6, 305);
+            this.label21.Location = new System.Drawing.Point(6, 371);
             this.label21.Name = "label21";
             this.label21.Size = new System.Drawing.Size(79, 13);
             this.label21.TabIndex = 72;
@@ -431,7 +443,7 @@
             // label18
             // 
             this.label18.AutoSize = true;
-            this.label18.Location = new System.Drawing.Point(184, 273);
+            this.label18.Location = new System.Drawing.Point(184, 339);
             this.label18.Name = "label18";
             this.label18.Size = new System.Drawing.Size(247, 13);
             this.label18.TabIndex = 70;
@@ -444,7 +456,7 @@
             0,
             0,
             0});
-            this.GeometryCacheSizeUpDown.Location = new System.Drawing.Point(110, 271);
+            this.GeometryCacheSizeUpDown.Location = new System.Drawing.Point(110, 337);
             this.GeometryCacheSizeUpDown.Maximum = new decimal(new int[] {
             4096,
             0,
@@ -469,7 +481,7 @@
             // label19
             // 
             this.label19.AutoSize = true;
-            this.label19.Location = new System.Drawing.Point(6, 273);
+            this.label19.Location = new System.Drawing.Point(6, 339);
             this.label19.Name = "label19";
             this.label19.Size = new System.Drawing.Size(88, 13);
             this.label19.TabIndex = 69;
@@ -477,7 +489,7 @@
             // 
             // label16
             // 
-            this.label16.Location = new System.Drawing.Point(175, 236);
+            this.label16.Location = new System.Drawing.Point(175, 302);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(269, 34);
             this.label16.TabIndex = 68;
@@ -492,7 +504,7 @@
             0,
             0,
             65536});
-            this.GPUFlushTimeUpDown.Location = new System.Drawing.Point(110, 239);
+            this.GPUFlushTimeUpDown.Location = new System.Drawing.Point(110, 305);
             this.GPUFlushTimeUpDown.Maximum = new decimal(new int[] {
             10,
             0,
@@ -516,7 +528,7 @@
             // label17
             // 
             this.label17.AutoSize = true;
-            this.label17.Location = new System.Drawing.Point(6, 241);
+            this.label17.Location = new System.Drawing.Point(6, 307);
             this.label17.Name = "label17";
             this.label17.Size = new System.Drawing.Size(80, 13);
             this.label17.TabIndex = 66;
@@ -524,7 +536,7 @@
             // 
             // label14
             // 
-            this.label14.Location = new System.Drawing.Point(175, 204);
+            this.label14.Location = new System.Drawing.Point(175, 270);
             this.label14.Name = "label14";
             this.label14.Size = new System.Drawing.Size(269, 34);
             this.label14.TabIndex = 65;
@@ -539,7 +551,7 @@
             0,
             0,
             65536});
-            this.GPUCacheTimeUpDown.Location = new System.Drawing.Point(110, 207);
+            this.GPUCacheTimeUpDown.Location = new System.Drawing.Point(110, 273);
             this.GPUCacheTimeUpDown.Maximum = new decimal(new int[] {
             10,
             0,
@@ -563,7 +575,7 @@
             // label15
             // 
             this.label15.AutoSize = true;
-            this.label15.Location = new System.Drawing.Point(6, 209);
+            this.label15.Location = new System.Drawing.Point(6, 275);
             this.label15.Name = "label15";
             this.label15.Size = new System.Drawing.Size(88, 13);
             this.label15.TabIndex = 63;
@@ -572,7 +584,7 @@
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(6, 64);
+            this.label13.Location = new System.Drawing.Point(6, 130);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(82, 13);
             this.label13.TabIndex = 62;
@@ -582,7 +594,7 @@
             // 
             this.ExcludeFoldersTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.ExcludeFoldersTextBox.Location = new System.Drawing.Point(110, 61);
+            this.ExcludeFoldersTextBox.Location = new System.Drawing.Point(110, 127);
             this.ExcludeFoldersTextBox.Name = "ExcludeFoldersTextBox";
             this.ExcludeFoldersTextBox.Size = new System.Drawing.Size(303, 20);
             this.ExcludeFoldersTextBox.TabIndex = 50;
@@ -590,7 +602,7 @@
             // 
             // label11
             // 
-            this.label11.Location = new System.Drawing.Point(175, 132);
+            this.label11.Location = new System.Drawing.Point(175, 198);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(269, 34);
             this.label11.TabIndex = 59;
@@ -604,7 +616,7 @@
             0,
             0,
             65536});
-            this.CacheTimeUpDown.Location = new System.Drawing.Point(110, 135);
+            this.CacheTimeUpDown.Location = new System.Drawing.Point(110, 201);
             this.CacheTimeUpDown.Maximum = new decimal(new int[] {
             60,
             0,
@@ -628,7 +640,7 @@
             // label12
             // 
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(6, 137);
+            this.label12.Location = new System.Drawing.Point(6, 203);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(88, 13);
             this.label12.TabIndex = 57;
@@ -637,7 +649,7 @@
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(192, 169);
+            this.label9.Location = new System.Drawing.Point(192, 235);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(226, 13);
             this.label9.TabIndex = 56;
@@ -650,7 +662,7 @@
             0,
             0,
             0});
-            this.CacheSizeUpDown.Location = new System.Drawing.Point(110, 167);
+            this.CacheSizeUpDown.Location = new System.Drawing.Point(110, 233);
             this.CacheSizeUpDown.Maximum = new decimal(new int[] {
             16384,
             0,
@@ -675,7 +687,7 @@
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(6, 169);
+            this.label10.Location = new System.Drawing.Point(6, 235);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(87, 13);
             this.label10.TabIndex = 54;
@@ -684,7 +696,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(174, 95);
+            this.label8.Location = new System.Drawing.Point(174, 161);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(236, 26);
             this.label8.TabIndex = 53;
@@ -693,7 +705,7 @@
             // 
             // ShadowCascadesUpDown
             // 
-            this.ShadowCascadesUpDown.Location = new System.Drawing.Point(110, 98);
+            this.ShadowCascadesUpDown.Location = new System.Drawing.Point(110, 164);
             this.ShadowCascadesUpDown.Maximum = new decimal(new int[] {
             6,
             0,
@@ -717,7 +729,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(6, 100);
+            this.label7.Location = new System.Drawing.Point(6, 166);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(98, 13);
             this.label7.TabIndex = 51;
@@ -753,6 +765,66 @@
             this.FolderTextBox.Size = new System.Drawing.Size(303, 20);
             this.FolderTextBox.TabIndex = 48;
             // 
+            // RoxwoodFolderLabel
+            // 
+            this.RoxwoodFolderLabel.AutoSize = true;
+            this.RoxwoodFolderLabel.Location = new System.Drawing.Point(6, 64);
+            this.RoxwoodFolderLabel.Name = "RoxwoodFolderLabel";
+            this.RoxwoodFolderLabel.Size = new System.Drawing.Size(87, 13);
+            this.RoxwoodFolderLabel.TabIndex = 78;
+            this.RoxwoodFolderLabel.Text = "Roxwood folder:";
+            // 
+            // RoxwoodFolderTextBox
+            // 
+            this.RoxwoodFolderTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.RoxwoodFolderTextBox.Location = new System.Drawing.Point(110, 61);
+            this.RoxwoodFolderTextBox.Name = "RoxwoodFolderTextBox";
+            this.RoxwoodFolderTextBox.Size = new System.Drawing.Size(303, 20);
+            this.RoxwoodFolderTextBox.TabIndex = 79;
+            this.RoxwoodFolderTextBox.TextChanged += new System.EventHandler(this.RoxwoodFolderTextBox_TextChanged);
+            // 
+            // RoxwoodFolderBrowseButton
+            // 
+            this.RoxwoodFolderBrowseButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.RoxwoodFolderBrowseButton.Location = new System.Drawing.Point(419, 60);
+            this.RoxwoodFolderBrowseButton.Name = "RoxwoodFolderBrowseButton";
+            this.RoxwoodFolderBrowseButton.Size = new System.Drawing.Size(27, 23);
+            this.RoxwoodFolderBrowseButton.TabIndex = 80;
+            this.RoxwoodFolderBrowseButton.Text = "...";
+            this.RoxwoodFolderBrowseButton.UseVisualStyleBackColor = true;
+            this.RoxwoodFolderBrowseButton.Click += new System.EventHandler(this.RoxwoodFolderBrowseButton_Click);
+            // 
+            // LasVenturasFolderLabel
+            // 
+            this.LasVenturasFolderLabel.AutoSize = true;
+            this.LasVenturasFolderLabel.Location = new System.Drawing.Point(6, 97);
+            this.LasVenturasFolderLabel.Name = "LasVenturasFolderLabel";
+            this.LasVenturasFolderLabel.Size = new System.Drawing.Size(76, 13);
+            this.LasVenturasFolderLabel.TabIndex = 81;
+            this.LasVenturasFolderLabel.Text = "Las Venturas:";
+            // 
+            // LasVenturasFolderTextBox
+            // 
+            this.LasVenturasFolderTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.LasVenturasFolderTextBox.Location = new System.Drawing.Point(110, 94);
+            this.LasVenturasFolderTextBox.Name = "LasVenturasFolderTextBox";
+            this.LasVenturasFolderTextBox.Size = new System.Drawing.Size(303, 20);
+            this.LasVenturasFolderTextBox.TabIndex = 82;
+            this.LasVenturasFolderTextBox.TextChanged += new System.EventHandler(this.LasVenturasFolderTextBox_TextChanged);
+            // 
+            // LasVenturasFolderBrowseButton
+            // 
+            this.LasVenturasFolderBrowseButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.LasVenturasFolderBrowseButton.Location = new System.Drawing.Point(419, 93);
+            this.LasVenturasFolderBrowseButton.Name = "LasVenturasFolderBrowseButton";
+            this.LasVenturasFolderBrowseButton.Size = new System.Drawing.Size(27, 23);
+            this.LasVenturasFolderBrowseButton.TabIndex = 83;
+            this.LasVenturasFolderBrowseButton.Text = "...";
+            this.LasVenturasFolderBrowseButton.UseVisualStyleBackColor = true;
+            this.LasVenturasFolderBrowseButton.Click += new System.EventHandler(this.LasVenturasFolderBrowseButton_Click);
+            // 
             // label5
             // 
             this.label5.AutoSize = true;
@@ -765,7 +837,7 @@
             // DoneButton
             // 
             this.DoneButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.DoneButton.Location = new System.Drawing.Point(397, 469);
+            this.DoneButton.Location = new System.Drawing.Point(397, 535);
             this.DoneButton.Name = "DoneButton";
             this.DoneButton.Size = new System.Drawing.Size(75, 23);
             this.DoneButton.TabIndex = 3;
@@ -776,7 +848,7 @@
             // SaveButton
             // 
             this.SaveButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.SaveButton.Location = new System.Drawing.Point(284, 469);
+            this.SaveButton.Location = new System.Drawing.Point(284, 535);
             this.SaveButton.Name = "SaveButton";
             this.SaveButton.Size = new System.Drawing.Size(107, 23);
             this.SaveButton.TabIndex = 2;
@@ -787,7 +859,7 @@
             // ResetButton
             // 
             this.ResetButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.ResetButton.Location = new System.Drawing.Point(158, 469);
+            this.ResetButton.Location = new System.Drawing.Point(158, 535);
             this.ResetButton.Name = "ResetButton";
             this.ResetButton.Size = new System.Drawing.Size(107, 23);
             this.ResetButton.TabIndex = 1;
@@ -799,7 +871,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(484, 504);
+            this.ClientSize = new System.Drawing.Size(484, 570);
             this.Controls.Add(this.ResetButton);
             this.Controls.Add(this.SaveButton);
             this.Controls.Add(this.DoneButton);
@@ -856,6 +928,12 @@
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Button FolderBrowseButton;
         private System.Windows.Forms.TextBox FolderTextBox;
+        private System.Windows.Forms.Label RoxwoodFolderLabel;
+        private System.Windows.Forms.TextBox RoxwoodFolderTextBox;
+        private System.Windows.Forms.Button RoxwoodFolderBrowseButton;
+        private System.Windows.Forms.Label LasVenturasFolderLabel;
+        private System.Windows.Forms.TextBox LasVenturasFolderTextBox;
+        private System.Windows.Forms.Button LasVenturasFolderBrowseButton;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.NumericUpDown ShadowCascadesUpDown;
         private System.Windows.Forms.Label label7;
