@@ -270,7 +270,7 @@
             this.SplashLabel1.Name = "SplashLabel1";
             this.SplashLabel1.Size = new System.Drawing.Size(198, 17);
             this.SplashLabel1.TabIndex = 0;
-            this.SplashLabel1.Text = "CodeWalker Mod Manager";
+            this.SplashLabel1.Text = "SprunkMapper Mod Manager";
             // 
             // OpenFileDialog
             // 
@@ -315,7 +315,7 @@
             this.Controls.Add(this.MainStatusStrip);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ModManagerForm";
-            this.Text = "CodeWalker Mod Manager";
+            this.Text = "SprunkMapper Mod Manager";
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.ModManagerForm_DragDrop);
             this.DragEnter += new System.Windows.Forms.DragEventHandler(this.ModManagerForm_DragEnter);
             this.MainStatusStrip.ResumeLayout(false);

@@ -235,7 +235,7 @@
             this.Controls.Add(this.CutsceneComboBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "CutsceneForm";
-            this.Text = "Cutscene Viewer - CodeWalker by dexyfex";
+            this.Text = "Cutscene Viewer - SprunkMapper";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.CutsceneForm_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.CutsceneForm_FormClosed);
             this.Load += new System.EventHandler(this.CutsceneForm_Load);

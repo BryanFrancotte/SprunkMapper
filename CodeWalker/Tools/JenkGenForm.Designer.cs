@@ -127,7 +127,7 @@
             this.Controls.Add(this.InputTextBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "JenkGenForm";
-            this.Text = "Jenkins Hash Generator - CodeWalker by dexyfex";
+            this.Text = "Jenkins Hash Generator - SprunkMapper";
             this.ResumeLayout(false);
             this.PerformLayout();
 

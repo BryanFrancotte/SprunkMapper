@@ -215,7 +215,7 @@
             this.Controls.Add(this.groupBox1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "StatisticsForm";
-            this.Text = "Performance Statistics - CodeWalker by dexyfex";
+            this.Text = "Performance Statistics - SprunkMapper";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);

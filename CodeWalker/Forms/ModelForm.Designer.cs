@@ -1042,7 +1042,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.Name = "ModelForm";
-            this.Text = "View Model - CodeWalker by dexyfex";
+            this.Text = "View Model - SprunkMapper";
             this.Deactivate += new System.EventHandler(this.ModelForm_Deactivate);
             this.Load += new System.EventHandler(this.ModelForm_Load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.ModelForm_KeyDown);

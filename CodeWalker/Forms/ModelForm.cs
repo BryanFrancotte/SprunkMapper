@@ -940,7 +940,7 @@ namespace CodeWalker.Forms
 
         private void UpdateFormTitle()
         {
-            Text = fileName + (modelModified ? "*" : "") + " - CodeWalker by dexyfex";
+            Text = fileName + (modelModified ? "*" : "") + " - SprunkMapper";
             GTAFolder.UpdateEnhancedFormTitle(this);
         }
 

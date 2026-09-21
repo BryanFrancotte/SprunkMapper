@@ -1152,14 +1152,14 @@ namespace CodeWalker.Project
             }
 
             CurrentProjectFile = new ProjectFile();
-            CurrentProjectFile.Name = "New CodeWalker Project";
+            CurrentProjectFile.Name = "New SprunkMapper Project";
             CurrentProjectFile.Version = 1;
             CurrentProjectFile.HasChanged = false;
             LoadProjectUI();
         }
         public void OpenProject()
         {
-            string file = ShowOpenDialog("CodeWalker Projects|*.cwproj", string.Empty);
+            string file = ShowOpenDialog("SprunkMapper Projects|*.cwproj", string.Empty);
             if (string.IsNullOrEmpty(file))
             {
                 return;
@@ -1537,7 +1537,7 @@ namespace CodeWalker.Project
             if (CurrentProjectFile == null) return;
             if (string.IsNullOrEmpty(CurrentProjectFile.Filepath) || saveas)
             {
-                string fileName = ShowSaveDialog("CodeWalker Projects|*.cwproj", CurrentProjectFile.Filepath);
+                string fileName = ShowSaveDialog("SprunkMapper Projects|*.cwproj", CurrentProjectFile.Filepath);
                 if (string.IsNullOrEmpty(fileName))
                 { return; } //user cancelled
 
@@ -8947,11 +8947,11 @@ namespace CodeWalker.Project
         {
             if (CurrentProjectFile == null)
             {
-                Text = "Project - CodeWalker by dexyfex";
+                Text = "Project - SprunkMapper";
             }
             else
             {
-                Text = CurrentProjectFile.Name + " - CodeWalker by dexyfex";
+                Text = CurrentProjectFile.Name + " - SprunkMapper";
             }
         }
 
@@ -9431,7 +9431,7 @@ namespace CodeWalker.Project
                 var tit = "Confirm close";
                 if (e.CloseReason == CloseReason.FormOwnerClosing)
                 {
-                    msg = "Are you sure you want to quit CodeWalker?";
+                    msg = "Are you sure you want to quit SprunkMapper?";
                     tit = "Confirm quit";
                 }
                 if (MessageBox.Show(msg, tit, MessageBoxButtons.YesNo) != DialogResult.Yes)

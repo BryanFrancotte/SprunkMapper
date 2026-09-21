@@ -258,7 +258,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.MainMenu;
             this.Name = "TextForm";
-            this.Text = "Text Editor - CodeWalker by dexyfex";
+            this.Text = "Text Editor - SprunkMapper";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.TextForm_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.MainTextBox)).EndInit();
             this.MainStatusStrip.ResumeLayout(false);

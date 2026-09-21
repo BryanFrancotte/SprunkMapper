@@ -71,7 +71,7 @@ namespace CodeWalker.Forms
 
         private void UpdateFormTitle()
         {
-            Text = fileName + " - Audio dat.rel Editor - CodeWalker by dexyfex";
+            Text = fileName + " - Audio dat.rel Editor - SprunkMapper";
         }
 
         private void UpdateTextBoxFromData()

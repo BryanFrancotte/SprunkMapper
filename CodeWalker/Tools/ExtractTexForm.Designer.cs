@@ -208,7 +208,7 @@
             this.Controls.Add(this.FolderTextBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ExtractTexForm";
-            this.Text = "Extract Textures - CodeWalker by dexyfex";
+            this.Text = "Extract Textures - SprunkMapper";
             this.Load += new System.EventHandler(this.ExtractTexForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

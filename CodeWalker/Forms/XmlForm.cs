@@ -69,7 +69,7 @@ namespace CodeWalker.Forms
 
         private void UpdateFormTitle()
         {
-            Text = fileName + " - XML Editor - CodeWalker by dexyfex";
+            Text = fileName + " - XML Editor - SprunkMapper";
         }
 
         private void UpdateTextBoxFromData()

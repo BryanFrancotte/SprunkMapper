@@ -143,7 +143,7 @@
             this.Controls.Add(this.CloseButton);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "YwrForm";
-            this.Text = "Waypoint Records Viewer - CodeWalker by dexyfex";
+            this.Text = "Waypoint Records Viewer - SprunkMapper";
             this.ResumeLayout(false);
 
         }

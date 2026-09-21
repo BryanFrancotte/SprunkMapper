@@ -40,7 +40,7 @@ namespace CodeWalker.Forms
 
         private void UpdateFormTitle()
         {
-            Text = fileName + " - FXC Viewer - CodeWalker by dexyfex";
+            Text = fileName + " - FXC Viewer - SprunkMapper";
         }
 
 

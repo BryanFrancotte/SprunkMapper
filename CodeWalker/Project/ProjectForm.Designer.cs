@@ -1539,11 +1539,11 @@
             // 
             // SaveFileDialog
             // 
-            this.SaveFileDialog.Filter = "CodeWalker Projects|*.cwproj";
+            this.SaveFileDialog.Filter = "SprunkMapper Projects|*.cwproj";
             // 
             // OpenFileDialog
             // 
-            this.OpenFileDialog.Filter = "CodeWalker Projects|*.cwproj";
+            this.OpenFileDialog.Filter = "SprunkMapper Projects|*.cwproj";
             // 
             // MainToolbar
             // 
@@ -1720,7 +1720,7 @@
             this.IsMdiContainer = true;
             this.MainMenuStrip = this.MainMenu;
             this.Name = "ProjectForm";
-            this.Text = "Project - CodeWalker by dexyfex";
+            this.Text = "Project - SprunkMapper";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ProjectForm_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ProjectForm_FormClosed);
             this.MainMenu.ResumeLayout(false);

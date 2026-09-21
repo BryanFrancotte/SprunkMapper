@@ -41,7 +41,7 @@ namespace CodeWalker.Forms
 
         private void UpdateFormTitle()
         {
-            Text = fileName + " - AWC Player - CodeWalker by dexyfex";
+            Text = fileName + " - AWC Player - SprunkMapper";
         }
 
         private void UpdateXmlTextBox(string xml)

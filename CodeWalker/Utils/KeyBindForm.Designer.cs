@@ -97,7 +97,7 @@
             this.MinimizeBox = false;
             this.Name = "KeyBindForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Bind Key - CodeWalker";
+            this.Text = "Bind Key - SprunkMapper";
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.KeyBindForm_KeyDown);
             this.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.KeyBindForm_PreviewKeyDown);
             this.ResumeLayout(false);

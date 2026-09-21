@@ -214,7 +214,7 @@
             this.Controls.Add(this.FolderTextBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ExtractScriptsForm";
-            this.Text = "Script Extractor - CodeWalker by dexyfex";
+            this.Text = "Script Extractor - SprunkMapper";
             this.Load += new System.EventHandler(this.ExtractForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

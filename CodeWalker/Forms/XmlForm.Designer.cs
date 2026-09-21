@@ -258,7 +258,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.MainMenu;
             this.Name = "XmlForm";
-            this.Text = "XML Editor - CodeWalker by dexyfex";
+            this.Text = "XML Editor - SprunkMapper";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.XmlForm_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.XmlTextBox)).EndInit();
             this.MainStatusStrip.ResumeLayout(false);

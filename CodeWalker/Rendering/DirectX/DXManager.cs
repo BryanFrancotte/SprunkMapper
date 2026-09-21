@@ -97,7 +97,7 @@ namespace CodeWalker.Rendering
 
                 if (!success)
                 {
-                    var msg = "CodeWalker was unable to initialise the graphics device. Please ensure your system meets the minimum requirements and that your graphics drivers and DirectX are up to date.";
+                    var msg = "SprunkMapper was unable to initialise the graphics device. Please ensure your system meets the minimum requirements and that your graphics drivers and DirectX are up to date.";
                     if (exc != null)
                     {
                         msg += "\n\nException info: " + exc.ToString();
@@ -137,7 +137,7 @@ namespace CodeWalker.Rendering
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Unable to initialise DirectX11.\n" + ex.Message, "CodeWalker - Error!");
+                MessageBox.Show("Unable to initialise DirectX11.\n" + ex.Message, "SprunkMapper - Error!");
                 return false;
             }
         }

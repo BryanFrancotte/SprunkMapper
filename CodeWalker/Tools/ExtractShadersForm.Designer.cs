@@ -195,7 +195,7 @@
             this.Controls.Add(this.FolderTextBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ExtractShadersForm";
-            this.Text = "Extract Shaders - CodeWalker by dexyfex";
+            this.Text = "Extract Shaders - SprunkMapper";
             this.Load += new System.EventHandler(this.ExtractShadersForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

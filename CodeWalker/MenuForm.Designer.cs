@@ -206,7 +206,7 @@
             this.Controls.Add(this.ExtractScriptsButton);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MenuForm";
-            this.Text = "CodeWalker Menu";
+            this.Text = "SprunkMapper Menu";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.ResumeLayout(false);

@@ -3663,7 +3663,7 @@ namespace CodeWalker
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.Name = "WorldForm";
-            this.Text = "CodeWalker";
+            this.Text = "SprunkMapper";
             this.Deactivate += new System.EventHandler(this.WorldForm_Deactivate);
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.WorldForm_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.WorldForm_FormClosed);

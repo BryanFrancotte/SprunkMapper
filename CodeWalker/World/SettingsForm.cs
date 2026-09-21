@@ -237,7 +237,7 @@ namespace CodeWalker.World
 
         private void ResetButton_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show("Are you sure you want to reset all CodeWalker settings to their default values?", "Confirm reset settings to defaults", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (MessageBox.Show("Are you sure you want to reset all SprunkMapper settings to their default values?", "Confirm reset settings to defaults", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
                 var k = Settings.Default.Key;
                 Settings.Default.Reset();

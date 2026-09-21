@@ -1397,7 +1397,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.MainMenu;
             this.Name = "ModelLightForm";
-            this.Text = "Light Editor - CodeWalker by dexyfex";
+            this.Text = "Light Editor - SprunkMapper";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ModelLightForm_FormClosed);
             this.MainSplitContainer.Panel1.ResumeLayout(false);
             this.MainSplitContainer.Panel2.ResumeLayout(false);

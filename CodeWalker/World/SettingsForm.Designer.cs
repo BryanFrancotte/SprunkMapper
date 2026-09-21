@@ -832,7 +832,7 @@
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(349, 13);
             this.label5.TabIndex = 0;
-            this.label5.Text = "NOTE: These settings require CodeWalker to be restarted to take effect.";
+            this.label5.Text = "NOTE: These settings require SprunkMapper to be restarted to take effect.";
             // 
             // DoneButton
             // 
@@ -878,7 +878,7 @@
             this.Controls.Add(this.MainTabControl);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "SettingsForm";
-            this.Text = "Settings - CodeWalker by dexyfex";
+            this.Text = "Settings - SprunkMapper";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.SettingsForm_FormClosed);
             this.MainTabControl.ResumeLayout(false);
             this.ControlsTabPage.ResumeLayout(false);

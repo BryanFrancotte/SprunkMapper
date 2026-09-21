@@ -608,7 +608,7 @@
             this.Controls.Add(this.MainTabControl);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "WorldSearchForm";
-            this.Text = "World Search - CodeWalker by dexyfex";
+            this.Text = "World Search - SprunkMapper";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.WorldSearchForm_FormClosed);
             this.MainTabControl.ResumeLayout(false);
             this.EntitySearchTabPage.ResumeLayout(false);

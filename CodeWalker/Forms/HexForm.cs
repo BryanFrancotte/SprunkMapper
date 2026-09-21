@@ -54,7 +54,7 @@ namespace CodeWalker.Forms
 
         private void UpdateFormTitle()
         {
-            Text = fileName + " - Hex Viewer - CodeWalker by dexyfex";
+            Text = fileName + " - Hex Viewer - SprunkMapper";
         }
 
         private void UpdateTextBoxFromData()

@@ -114,7 +114,7 @@
             this.Controls.Add(this.MainTextBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "TextInputForm";
-            this.Text = "Text Input - CodeWalker by dexyfex";
+            this.Text = "Text Input - SprunkMapper";
             ((System.ComponentModel.ISupportInitialize)(this.MainTextBox)).EndInit();
             this.ResumeLayout(false);
 

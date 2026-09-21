@@ -73,7 +73,7 @@ namespace CodeWalker.Forms
 
         private void UpdateFormTitle()
         {
-            Text = fileName + " - Clip Dictionary Inspector - CodeWalker by dexyfex";
+            Text = fileName + " - Clip Dictionary Inspector - SprunkMapper";
         }
 
         private void UpdateXmlTextBox(string xml)

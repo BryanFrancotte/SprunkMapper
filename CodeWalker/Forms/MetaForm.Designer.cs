@@ -323,7 +323,7 @@
             this.Controls.Add(this.MainMenu);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MetaForm";
-            this.Text = "Meta Editor - CodeWalker by dexyfex";
+            this.Text = "Meta Editor - SprunkMapper";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MetaForm_FormClosing);
             this.MainToolbar.ResumeLayout(false);
             this.MainToolbar.PerformLayout();

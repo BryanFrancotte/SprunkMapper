@@ -365,7 +365,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MinimumSize = new System.Drawing.Size(592, 300);
             this.Name = "AwcForm";
-            this.Text = "AWC Player - CodeWalker by dexyfex";
+            this.Text = "AWC Player - SprunkMapper";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.AwcForm_FormClosing);
             this.MainTabControl.ResumeLayout(false);
             this.PlayerTabPage.ResumeLayout(false);

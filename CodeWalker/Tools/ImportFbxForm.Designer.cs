@@ -126,7 +126,7 @@
             this.Controls.Add(this.ImportButton);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ImportFbxForm";
-            this.Text = "Import FBX - CodeWalker by dexyfex";
+            this.Text = "Import FBX - SprunkMapper";
             this.ResumeLayout(false);
             this.PerformLayout();
 

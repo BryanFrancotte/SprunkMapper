@@ -40,7 +40,7 @@ namespace CodeWalker.Forms
 
         private void UpdateFormTitle()
         {
-            Text = fileName + " - Waypoint Records Viewer - CodeWalker by dexyfex";
+            Text = fileName + " - Waypoint Records Viewer - SprunkMapper";
         }
 
 

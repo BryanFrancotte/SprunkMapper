@@ -147,7 +147,7 @@
             this.MaximizeBox = false;
             this.MinimumSize = new System.Drawing.Size(422, 152);
             this.Name = "SelectFolderForm";
-            this.Text = "Select GTAV folder - CodeWalker by dexyfex";
+            this.Text = "Select GTAV folder - SprunkMapper";
             this.Load += new System.EventHandler(this.SelectFolderForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

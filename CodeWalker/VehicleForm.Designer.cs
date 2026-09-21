@@ -830,7 +830,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.Name = "VehicleForm";
-            this.Text = "Vehicle Viewer - CodeWalker by dexyfex";
+            this.Text = "Vehicle Viewer - SprunkMapper";
             this.Deactivate += new System.EventHandler(this.VehicleForm_Deactivate);
             this.Load += new System.EventHandler(this.VehicleForm_Load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.VehicleForm_KeyDown);

@@ -142,7 +142,7 @@ namespace CodeWalker
 
             if(ValidateGTAFolder(CurrentGTAFolder, IsGen9))
             {
-                matches.Add("Current CodeWalker Folder", CurrentGTAFolder);
+                matches.Add("Current SprunkMapper Folder", CurrentGTAFolder);
             }
 
             RegistryKey baseKey32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);

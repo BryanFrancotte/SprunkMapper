@@ -217,7 +217,7 @@
             this.Controls.Add(this.CloseButton);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "YvrForm";
-            this.Text = "Vehicle Records Viewer - CodeWalker by dexyfex";
+            this.Text = "Vehicle Records Viewer - SprunkMapper";
             this.ResumeLayout(false);
 
         }

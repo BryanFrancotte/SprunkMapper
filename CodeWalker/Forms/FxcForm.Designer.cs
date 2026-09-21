@@ -332,7 +332,7 @@
             this.Controls.Add(this.MainTabControl);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "FxcForm";
-            this.Text = "FXC Viewer - CodeWalker by dexyfex";
+            this.Text = "FXC Viewer - SprunkMapper";
             this.MainTabControl.ResumeLayout(false);
             this.ShadersTabPage.ResumeLayout(false);
             this.DetailsTabPage.ResumeLayout(false);

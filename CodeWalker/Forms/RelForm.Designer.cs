@@ -638,7 +638,7 @@
             this.Controls.Add(this.MainMenu);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "RelForm";
-            this.Text = "Audio dat.rel Editor - CodeWalker by dexyfex";
+            this.Text = "Audio dat.rel Editor - SprunkMapper";
             this.MainTabControl.ResumeLayout(false);
             this.XmlTabPage.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.XmlTextBox)).EndInit();

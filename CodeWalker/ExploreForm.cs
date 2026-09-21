@@ -381,7 +381,7 @@ namespace CodeWalker
             var result = GTAFolder.UpdateGTAFolder(false, false);
             if (result)
             {
-                MessageBox.Show("Please restart CodeWalker to use the new folder.");
+                MessageBox.Show("Please restart SprunkMapper to use the new folder.");
             }
         }
 
@@ -3431,7 +3431,7 @@ namespace CodeWalker
                 Width = 450,
                 Height = 290,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
-                Text = "Defragment RPF Archive - CodeWalker by dexyfex",
+                Text = "Defragment RPF Archive - SprunkMapper",
                 StartPosition = FormStartPosition.CenterParent,
                 MaximizeBox = false,
                 MinimizeBox = false

@@ -62,7 +62,7 @@ namespace CodeWalker.Forms
         private void UpdateFormTitle()
         {
             string ro = "";// " [Read-Only]";
-            Text = fileName + " - Meta Editor" + ro + " - CodeWalker by dexyfex";
+            Text = fileName + " - Meta Editor" + ro + " - SprunkMapper";
         }
 
         private void UpdateTextBoxFromData()

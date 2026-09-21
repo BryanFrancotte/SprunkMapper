@@ -556,7 +556,7 @@
             this.Controls.Add(this.MainTabControl);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "BinarySearchForm";
-            this.Text = "Binary Search - CodeWalker by dexyfex";
+            this.Text = "Binary Search - SprunkMapper";
             this.Load += new System.EventHandler(this.BinarySearchForm_Load);
             this.MainTabControl.ResumeLayout(false);
             this.SearchRPFTabPage.ResumeLayout(false);

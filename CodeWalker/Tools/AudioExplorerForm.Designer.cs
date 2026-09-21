@@ -198,7 +198,7 @@ namespace CodeWalker.Tools
             this.Controls.Add(this.MainSplitContainer);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "AudioExplorerForm";
-            this.Text = "Audio Explorer - CodeWalker by dexyfex";
+            this.Text = "Audio Explorer - SprunkMapper";
             this.MainSplitContainer.Panel1.ResumeLayout(false);
             this.MainSplitContainer.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.MainSplitContainer)).EndInit();

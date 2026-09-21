@@ -39,7 +39,7 @@ namespace CodeWalker.ModManager
             {
                 Invoke(new Action(() =>
                 {
-                    var msgex = "CodeWalker Mod Manager will now exit.";
+                    var msgex = "SprunkMapper Mod Manager will now exit.";
                     MessageBoxEx.Show(this, $"{msg}\n\n{msgex}", title);
                     Close();
                 }));
@@ -68,7 +68,7 @@ namespace CodeWalker.ModManager
                 if (Settings.FileExists == false)
                 {
                     var msg1 = $"Unable to load {Settings.FileName}.";
-                    var msg2 = "Please make sure you have installed CodeWalker Mod Manager correctly.";
+                    var msg2 = "Please make sure you have installed SprunkMapper Mod Manager correctly.";
                     var msg3 = "The exe should be running from its installation folder, and not the zip file.";
                     initFail($"{msg1}\n{msg2}\n{msg3}", "Settings file not found");
                     return;

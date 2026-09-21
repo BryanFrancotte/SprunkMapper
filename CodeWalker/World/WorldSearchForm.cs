@@ -49,7 +49,7 @@ namespace CodeWalker.World
             var gfc = WorldForm.GameFileCache;
             if (!gfc.IsInited)
             {
-                MessageBox.Show("Please wait for CodeWalker to initialise.");
+                MessageBox.Show("Please wait for SprunkMapper to initialise.");
                 return;
             }
             if (s.Length == 0)
@@ -288,7 +288,7 @@ namespace CodeWalker.World
             var gfc = WorldForm.GameFileCache;
             if (!gfc.IsInited)
             {
-                MessageBox.Show("Please wait for CodeWalker to initialise.");
+                MessageBox.Show("Please wait for SprunkMapper to initialise.");
                 return;
             }
             if (s.Length == 0)

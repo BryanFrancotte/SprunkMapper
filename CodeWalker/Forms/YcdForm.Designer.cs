@@ -194,7 +194,7 @@
             this.Controls.Add(this.MainTabControl);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "YcdForm";
-            this.Text = "Clip Dictionary Inspector - CodeWalker by dexyfex";
+            this.Text = "Clip Dictionary Inspector - SprunkMapper";
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();

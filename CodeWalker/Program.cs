@@ -62,7 +62,7 @@ namespace CodeWalker
             // Always check the GTA folder first thing
             if (!GTAFolder.UpdateGTAFolder(Properties.Settings.Default.RememberGTAFolder))
             {
-                MessageBox.Show("Could not load CodeWalker because no valid GTA 5 folder was selected. CodeWalker will now exit.", "GTA 5 Folder Not Found", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                MessageBox.Show("Could not load SprunkMapper because no valid GTA 5 folder was selected. SprunkMapper will now exit.", "GTA 5 Folder Not Found", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 return;
             }
 #if !DEBUG

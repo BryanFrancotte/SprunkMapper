@@ -595,7 +595,7 @@ namespace CodeWalker.World
             this.Controls.Add(this.MouseSelectCheckBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "WorldInfoForm";
-            this.Text = "Info - CodeWalker by dexyfex";
+            this.Text = "Info - SprunkMapper";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.WorldInfoForm_FormClosed);
             this.Load += new System.EventHandler(this.WorldInfoForm_Load);
             this.SelectionTabControl.ResumeLayout(false);

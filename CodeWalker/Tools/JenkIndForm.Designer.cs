@@ -183,7 +183,7 @@
             this.Controls.Add(this.MainPanel);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "JenkIndForm";
-            this.Text = "Jenkins Hash Lookup - CodeWalker by dexyfex";
+            this.Text = "Jenkins Hash Lookup - SprunkMapper";
             this.MainPanel.ResumeLayout(false);
             this.MainPanel.PerformLayout();
             this.ResumeLayout(false);

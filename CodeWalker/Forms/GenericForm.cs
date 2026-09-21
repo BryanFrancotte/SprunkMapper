@@ -51,7 +51,7 @@ namespace CodeWalker.Forms
 
         private void UpdateFormTitle()
         {
-            Text = fileName + " - File Inspector - CodeWalker by dexyfex";
+            Text = fileName + " - File Inspector - SprunkMapper";
         }
 
     }

@@ -77,7 +77,7 @@
             MaximizeBox = false;
             MinimizeBox = false;
             Name = "ColourPickerForm";
-            Text = "Colour Picker - CodeWalker by dexyfex";
+            Text = "Colour Picker - SprunkMapper";
             FormClosing += ColourPickerForm_FormClosing;
             Load += ColourPickerForm_Load;
             ResumeLayout(false);

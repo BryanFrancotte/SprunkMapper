@@ -1089,7 +1089,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.Name = "PedsForm";
-            this.Text = "Ped Viewer - CodeWalker by dexyfex";
+            this.Text = "Ped Viewer - SprunkMapper";
             this.Deactivate += new System.EventHandler(this.PedsForm_Deactivate);
             this.Load += new System.EventHandler(this.PedsForm_Load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.PedsForm_KeyDown);

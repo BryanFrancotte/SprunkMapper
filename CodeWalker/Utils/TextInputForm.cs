@@ -55,7 +55,7 @@ namespace CodeWalker.Utils
             set
             {
                 _TitleText = value;
-                var str = "Text Input - CodeWalker by dexyfex";
+                var str = "Text Input - SprunkMapper";
                 if (!string.IsNullOrEmpty(_TitleText))
                 {
                     Text = _TitleText + " - " + str;

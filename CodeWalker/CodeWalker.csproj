@@ -5,6 +5,7 @@
     <TargetFramework>net48</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>
+    <AssemblyName>SprunkMapper</AssemblyName>
     <ApplicationIcon>CW.ico</ApplicationIcon>
     <Copyright>dexyfex</Copyright>
     <Company>dexyfex software</Company>

@@ -1180,7 +1180,7 @@ namespace CodeWalker.Tools
                 string fpath = SaveFileDialog.FileName;
 
                 StringBuilder sb = new StringBuilder();
-                sb.AppendLine("CodeWalker Search Results for \"" + SearchTextBox.Text + "\"");
+                sb.AppendLine("SprunkMapper Search Results for \"" + SearchTextBox.Text + "\"");
                 sb.AppendLine("[File path], [Byte offset]");
                 if (SearchResults != null)
                 {

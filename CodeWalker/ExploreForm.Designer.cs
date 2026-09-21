@@ -1360,7 +1360,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.MainMenu;
             this.Name = "ExploreForm";
-            this.Text = "RPF Explorer - CodeWalker by dexyfex";
+            this.Text = "RPF Explorer - SprunkMapper";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ExploreForm_FormClosed);
             this.Load += new System.EventHandler(this.ExploreForm_Load);
             this.MainMenu.ResumeLayout(false);

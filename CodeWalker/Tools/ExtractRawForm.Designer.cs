@@ -201,7 +201,7 @@
             this.Controls.Add(this.FolderTextBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ExtractRawForm";
-            this.Text = "Extract Raw Files - CodeWalker by dexyfex";
+            this.Text = "Extract Raw Files - SprunkMapper";
             this.Load += new System.EventHandler(this.ExtractRawForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

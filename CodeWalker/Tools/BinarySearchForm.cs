@@ -561,7 +561,7 @@ namespace CodeWalker.Tools
                 string fpath = SaveFileDialog.FileName;
 
                 StringBuilder sb = new StringBuilder();
-                sb.AppendLine("CodeWalker Search Results for \"" + RpfSearchTextBox.Text + "\"");
+                sb.AppendLine("SprunkMapper Search Results for \"" + RpfSearchTextBox.Text + "\"");
                 sb.AppendLine("[File path], [Byte offset]");
                 if (RpfSearchResults != null)
                 {

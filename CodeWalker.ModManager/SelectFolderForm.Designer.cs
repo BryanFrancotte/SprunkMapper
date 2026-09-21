@@ -135,7 +135,7 @@
             this.MinimizeBox = false;
             this.Name = "SelectFolderForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Select GTAV folder - CodeWalker by dexyfex";
+            this.Text = "Select GTAV folder - SprunkMapper";
             this.Load += new System.EventHandler(this.SelectFolderForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

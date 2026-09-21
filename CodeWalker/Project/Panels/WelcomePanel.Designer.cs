@@ -41,7 +41,7 @@
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(266, 13);
             this.label1.TabIndex = 0;
-            this.label1.Text = "Welcome to the CodeWalker Project Window!";
+            this.label1.Text = "Welcome to the SprunkMapper Project Window!";
             // 
             // label2
             // 

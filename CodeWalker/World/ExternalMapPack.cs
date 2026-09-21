@@ -474,6 +474,8 @@ namespace CodeWalker.World
                     return false;
                 }
 
+                //a previous Failed run leaves its source behind (only BeginUnload disposes one)
+                if (cancelSource != null) { try { cancelSource.Dispose(); } catch { } cancelSource = null; }
                 cancelSource = new CancellationTokenSource();
                 var token = cancelSource.Token;
                 stateval = (int)ExternalMapPackState.Loading;
@@ -793,13 +795,30 @@ namespace CodeWalker.World
                 uint hash = (ymap.RpfFileEntry != null) ? ymap.RpfFileEntry.ShortNameHash : 0;
                 if ((hash != 0) && (overrideSet != null) && overrideSet.Contains(hash))
                 {
-                    byhash[new MetaHash(hash)] = ymap;
+                    var mh = new MetaHash(hash);
+                    if (byhash.ContainsKey(mh)) RemoveBounds(bounds, mh);
+                    byhash[mh] = ymap;
                 }
                 return;
             }
 
+            //Two files in the pack can share a short name (BuildCollisionReport reports these) - everything is keyed
+            //by that hash alone, so only one can win, and the documented rule is the later file. Drop the earlier
+            //file's cull entry rather than leaving both in Items: otherwise which instance a name resolves to depends
+            //on which one the camera reaches first, and it can disagree with ByHash (used for the LOD parent climb),
+            //breaking the constant name->instance mapping RenderLodManager relies on.
+            if (byhash.ContainsKey(b.Hash)) RemoveBounds(bounds, b.Hash);
             bounds.Add(b);
             byhash[b.Hash] = ymap;
+        }
+
+        /// <summary>Drops the cull entry for a ymap name, if there is one. Only reached for duplicate short names.</summary>
+        private static void RemoveBounds(List<ExternalYmapBounds> bounds, MetaHash hash)
+        {
+            for (int i = bounds.Count - 1; i >= 0; i--)
+            {
+                if (bounds[i].Hash.Hash == hash.Hash) bounds.RemoveAt(i);
+            }
         }
 
 

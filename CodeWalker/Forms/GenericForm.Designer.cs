@@ -49,7 +49,7 @@
             this.Controls.Add(this.DetailsPropertyGrid);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "GenericForm";
-            this.Text = "File Inspector - CodeWalker by dexyfex";
+            this.Text = "File Inspector - SprunkMapper";
             this.ResumeLayout(false);
 
         }

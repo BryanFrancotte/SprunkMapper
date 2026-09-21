@@ -751,7 +751,7 @@
             this.DoubleBuffered = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "BrowseForm";
-            this.Text = "RPF Browser - CodeWalker by dexyfex";
+            this.Text = "RPF Browser - SprunkMapper";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.BrowseForm_FormClosed);
             this.Load += new System.EventHandler(this.BrowseForm_Load);
             this.splitContainer1.Panel1.ResumeLayout(false);

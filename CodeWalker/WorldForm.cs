@@ -482,7 +482,7 @@ namespace CodeWalker
         {
             if ((ProjectForm != null) && (ProjectForm.CurrentProjectFile != null))
             {
-                if (MessageBox.Show("Are you sure you want to quit CodeWalker?", "Confirm quit", MessageBoxButtons.YesNo) != DialogResult.Yes)
+                if (MessageBox.Show("Are you sure you want to quit SprunkMapper?", "Confirm quit", MessageBoxButtons.YesNo) != DialogResult.Yes)
                 {
                     return false;
                 }
@@ -5061,29 +5061,35 @@ namespace CodeWalker
             externalMapPacks.Add(lasVenturasMapPack);
         }
 
+        //Clearing a checkbox from inside its own CheckedChanged handler raises the event again, synchronously.
+        //Without this guard, every "can't load right now" path below unchecked the box, re-entered here on the
+        //unchecked branch, started a bogus unload and overwrote the message explaining why with "unloading...".
+        private bool suppressMapPackToggle = false;
+
         private void ToggleExternalMapPack(ExternalMapPack pack, CheckBox checkbox, string folderpath)
         {
             if (pack == null) return;
+            if (suppressMapPackToggle) return;
             if (checkbox.Checked)
             {
                 if (!gameFileCache.IsInited)
                 {
+                    UncheckMapPackCheckBox(checkbox);
                     UpdateMapPackStatusLabel(pack.Name + ": game files still loading.");
-                    checkbox.Checked = false;
                     return;
                 }
                 if (pack.State == ExternalMapPackState.Unloading)
                 {
+                    UncheckMapPackCheckBox(checkbox);
                     UpdateMapPackStatusLabel(pack.Name + ": still unloading, try again in a moment.");
-                    checkbox.Checked = false;
                     return;
                 }
                 pack.TrySetFolderPath(folderpath); //picks up any settings change made since startup
                 if (!pack.BeginLoad())
                 {
-                    UpdateMapPackStatusLabel(pack.Status);
                     //leave it checked only if it really is loading or already loaded
-                    if (!pack.IsLoading && !pack.IsLoaded) checkbox.Checked = false;
+                    if (!pack.IsLoading && !pack.IsLoaded) UncheckMapPackCheckBox(checkbox);
+                    UpdateMapPackStatusLabel(pack.Status);
                     return;
                 }
                 UpdateMapPackStatusLabel(pack.Status);
@@ -5093,6 +5099,13 @@ namespace CodeWalker
                 pack.BeginUnload(() => UpdateMapPackStatusLabel(""));
                 UpdateMapPackStatusLabel(pack.Name + ": unloading...");
             }
+        }
+
+        private void UncheckMapPackCheckBox(CheckBox checkbox)
+        {
+            suppressMapPackToggle = true;
+            try { checkbox.Checked = false; }
+            finally { suppressMapPackToggle = false; }
         }
 
         private void OnExternalMapPackStatusChanged(ExternalMapPack pack)
@@ -7126,7 +7139,7 @@ namespace CodeWalker
             var result = GTAFolder.UpdateGTAFolder(false, false);
             if (result)
             {
-                MessageBox.Show("Please restart CodeWalker to use the new folder.");
+                MessageBox.Show("Please restart SprunkMapper to use the new folder.");
             }
         }
 

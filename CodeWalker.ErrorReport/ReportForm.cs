@@ -29,7 +29,8 @@ namespace CodeWalker.ErrorReport
                     string[] lines = message.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
                     if (lines.Length > 0 &&
-                        (lines[0].Contains("CodeWalker.exe") ||
+                        (lines[0].Contains("SprunkMapper.exe") ||
+                         lines[0].Contains("CodeWalker.exe") || //pre-rename crash entries still in the log
                          lines[0].Contains("CodeWalker RPF Explorer.exe") ||
                          lines[0].Contains("CodeWalker Ped Viewer.exe") ||
                          lines[0].Contains("CodeWalker Vehicle Viewer.exe")))
@@ -54,7 +55,7 @@ namespace CodeWalker.ErrorReport
             if (!found)
             {
                 AppendColoredText(ErrorTextBox, "Event Log entry not found!\r\n", Color.Gray);
-                MessageBox.Show("Unable to find the last CodeWalker error in the Event Log.");
+                MessageBox.Show("Unable to find the last SprunkMapper error in the Event Log.");
             }
         }
 
