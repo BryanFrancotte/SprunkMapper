@@ -147,6 +147,15 @@ namespace CodeWalker.Project.Panels
             }
         }
 
+        private void RenameArchetypeButton_Click(object sender, EventArgs e)
+        {
+            if ((ProjectForm == null) || (CurrentArchetype == null)) return;
+            if (ProjectForm.ShowRenameArchetypeDialog(CurrentArchetype))
+            {
+                SetArchetype(CurrentArchetype); //show the new name, asset name and dictionaries
+            }
+        }
+
         private void ArchetypeNameTextBox_TextChanged(object sender, EventArgs e)
         {
             if (ProjectForm == null) return;

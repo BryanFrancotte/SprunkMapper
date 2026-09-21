@@ -457,6 +457,112 @@ namespace CodeWalker.Project
                 (panel) => { panel.SetArchetype(CurrentArchetype); }, //updateFunc
                 (panel) => { return panel.CurrentArchetype == CurrentArchetype; }); //findFunc
         }
+
+        /// <summary>
+        /// Opens the Rename Archetype dialog: renames a prop in its ytyp, every ymap placing it, the MLOs containing
+        /// it, and the .ydr/.ytd files named after it. Returns true if a rename was applied.
+        /// </summary>
+        public bool ShowRenameArchetypeDialog(Archetype arch)
+        {
+            if (arch == null) return false;
+            if (!YtypExistsInProject(arch.Ytyp))
+            {
+                MessageBox.Show("Only archetypes in a ytyp that's part of the project can be renamed.\nAdd the ytyp to the project first.", "Rename Archetype");
+                return false;
+            }
+            using (var f = new RenameArchetypeForm(this, arch))
+            {
+                return f.ShowDialog(this) == DialogResult.OK;
+            }
+        }
+        public ArchetypeRenameRequest CreateArchetypeRenameRequest(Archetype arch)
+        {
+            var req = new ArchetypeRenameRequest();
+            req.Archetype = arch;
+            req.ResourceRoot = ArchetypeRenamer.FindResourceRoot(arch?.Ytyp?.FilePath);
+            if (CurrentProjectFile != null)
+            {
+                req.ProjectYtyps.AddRange(CurrentProjectFile.YtypFiles);
+                req.ProjectYmaps.AddRange(CurrentProjectFile.YmapFiles);
+                req.ProjectAssets.AddRange(CurrentProjectFile.YdrFiles);
+                req.ProjectAssets.AddRange(CurrentProjectFile.YddFiles);
+                req.ProjectAssets.AddRange(CurrentProjectFile.YftFiles);
+                req.ProjectAssets.AddRange(CurrentProjectFile.YtdFiles);
+            }
+            req.IsNameTakenElsewhere = (h) => GameFileCache?.GetArchetype(h) != null;
+            req.BackupRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SprunkMapper", "rename-backups");
+            return req;
+        }
+        /// <summary>
+        /// Applies a rename plan, keeping everything that's keyed by the old hashes in step: the project
+        /// archetypes and project drawables/textures in GameFileCache, and the project file's file list.
+        /// Throws if the rename fails - the files on disk are rolled back by then.
+        /// </summary>
+        public void ApplyArchetypeRename(ArchetypeRenamePlan plan)
+        {
+            if ((plan == null) || (CurrentProjectFile == null)) return;
+
+            var ytyps = plan.Edits.Where(e => e.IsProjectFile).Select(e => e.File).OfType<YtypFile>().ToList();
+            var moves = plan.Moves.Where(m => m.ProjectFile != null).ToList();
+
+            lock (projectsyncroot)
+            {
+                //these lookups are keyed by the hashes about to change: out before, back in after - under
+                //whichever hash the object ended up with, so a failed rename re-registers the old ones
+                foreach (var ytyp in ytyps) RemoveProjectArchetypes(ytyp);
+                foreach (var m in moves) GameFileCache?.RemoveProjectFile(m.ProjectFile);
+                try
+                {
+                    ArchetypeRenamer.Apply(plan);
+                }
+                finally
+                {
+                    foreach (var ytyp in ytyps) AddProjectArchetypes(ytyp);
+                    foreach (var m in moves) GameFileCache?.AddProjectFile(m.ProjectFile);
+                }
+            }
+
+            //the project file lists hold relative paths
+            foreach (var m in moves)
+            {
+                var oldrel = CurrentProjectFile.GetRelativePath(m.OldPath);
+                var newrel = CurrentProjectFile.GetRelativePath(m.NewPath);
+                if (m.ProjectFile is YdrFile) CurrentProjectFile.RenameYdr(oldrel, newrel);
+                else if (m.ProjectFile is YddFile) CurrentProjectFile.RenameYdd(oldrel, newrel);
+                else if (m.ProjectFile is YftFile) CurrentProjectFile.RenameYft(oldrel, newrel);
+                else if (m.ProjectFile is YtdFile) CurrentProjectFile.RenameYtd(oldrel, newrel);
+            }
+            if (moves.Count > 0)
+            {
+                if (!string.IsNullOrEmpty(CurrentProjectFile.Filepath))
+                {
+                    SaveProject(); //so the .cwproj matches the renamed files on disk
+                }
+                else
+                {
+                    SetProjectHasChanged(true);
+                }
+            }
+
+            foreach (var e in plan.Edits)
+            {
+                if (!e.IsProjectFile) continue;
+                bool unsaved = !e.CanSave; //the rest were saved by Apply
+                if (e.File is YmapFile ymap)
+                {
+                    ymap.HasChanged = unsaved;
+                    ProjectExplorer?.SetYmapHasChanged(ymap, unsaved);
+                }
+                else if (e.File is YtypFile ytyp)
+                {
+                    ytyp.HasChanged = unsaved;
+                    ProjectExplorer?.SetYtypHasChanged(ytyp, unsaved);
+                }
+            }
+
+            LoadProjectTree();
+            RefreshUI();
+        }
         public void ShowEditYbnPanel(bool promote)
         {
             ShowPanel(promote,
@@ -9052,6 +9158,7 @@ namespace CodeWalker.Project
 
             YtypNewArchetypeMenu.Enabled = enable && inproj;
             YtypNewArchetypeFromYdrMenu.Enabled = enable && inproj;
+            YtypRenameArchetypeMenu.Enabled = enable && inproj && (CurrentArchetype != null) && (CurrentArchetype.Ytyp == CurrentYtypFile);
             YtypMloToolStripMenuItem.Enabled = enable && inproj && ismlo;
             YtypMloNewEntityToolStripMenuItem.Enabled = YtypMloToolStripMenuItem.Enabled;
 
@@ -9603,6 +9710,13 @@ namespace CodeWalker.Project
         private void YtypNewArchetypeFromYdrMenu_Click(object sender, EventArgs e)
         {
             NewArchetypesFromYdrs();
+        }
+        private void YtypRenameArchetypeMenu_Click(object sender, EventArgs e)
+        {
+            if (ShowRenameArchetypeDialog(CurrentArchetype))
+            {
+                ShowEditArchetypePanel(false);
+            }
         }
         private void YtypMloNewEntityToolStripMenuItem_Click(object sender, EventArgs e)
         {

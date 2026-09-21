@@ -91,6 +91,7 @@
             this.toolStripSeparator13 = new System.Windows.Forms.ToolStripSeparator();
             this.YtypNewArchetypeMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.YtypNewArchetypeFromYdrMenu = new System.Windows.Forms.ToolStripMenuItem();
+            this.YtypRenameArchetypeMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.YtypMloToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.YtypMloNewEntityToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.YtypMloNewRoomToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -689,6 +690,7 @@
             this.toolStripSeparator13,
             this.YtypNewArchetypeMenu,
             this.YtypNewArchetypeFromYdrMenu,
+            this.YtypRenameArchetypeMenu,
             this.YtypMloToolStripMenuItem,
             this.toolStripSeparator15,
             this.YtypAddToProjectMenu,
@@ -725,6 +727,14 @@
             this.YtypNewArchetypeFromYdrMenu.Size = new System.Drawing.Size(218, 22);
             this.YtypNewArchetypeFromYdrMenu.Text = "New Archetype from YDR...";
             this.YtypNewArchetypeFromYdrMenu.Click += new System.EventHandler(this.YtypNewArchetypeFromYdrMenu_Click);
+            // 
+            // YtypRenameArchetypeMenu
+            // 
+            this.YtypRenameArchetypeMenu.Enabled = false;
+            this.YtypRenameArchetypeMenu.Name = "YtypRenameArchetypeMenu";
+            this.YtypRenameArchetypeMenu.Size = new System.Drawing.Size(218, 22);
+            this.YtypRenameArchetypeMenu.Text = "Rename Archetype...";
+            this.YtypRenameArchetypeMenu.Click += new System.EventHandler(this.YtypRenameArchetypeMenu_Click);
             // 
             // YtypMloToolStripMenuItem
             // 
@@ -1894,6 +1904,7 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator28;
         private System.Windows.Forms.ToolStripMenuItem OptionsDisplayEntityIndexesMenu;
         private System.Windows.Forms.ToolStripMenuItem YtypNewArchetypeFromYdrMenu;
+        private System.Windows.Forms.ToolStripMenuItem YtypRenameArchetypeMenu;
         private System.Windows.Forms.ToolStripMenuItem FileOpenFilesMenu;
         private System.Windows.Forms.ToolStripMenuItem FileOpenFolderMenu;
         private System.Windows.Forms.FolderBrowserDialog FolderBrowserDialog;

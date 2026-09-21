@@ -37,6 +37,7 @@
             this.BBMaxTextBox = new System.Windows.Forms.TextBox();
             this.BBMinTextBox = new System.Windows.Forms.TextBox();
             this.ArchetypeNameTextBox = new System.Windows.Forms.TextBox();
+            this.RenameArchetypeButton = new System.Windows.Forms.Button();
             this.ArchetypeFlagsTextBox = new System.Windows.Forms.TextBox();
             this.PhysicsDictionaryTextBox = new System.Windows.Forms.TextBox();
             this.DrawableDictionaryTextBox = new System.Windows.Forms.TextBox();
@@ -90,6 +91,7 @@
             this.BaseArchetypeTabPage.Controls.Add(this.BBMaxTextBox);
             this.BaseArchetypeTabPage.Controls.Add(this.BBMinTextBox);
             this.BaseArchetypeTabPage.Controls.Add(this.ArchetypeNameTextBox);
+            this.BaseArchetypeTabPage.Controls.Add(this.RenameArchetypeButton);
             this.BaseArchetypeTabPage.Controls.Add(this.ArchetypeFlagsTextBox);
             this.BaseArchetypeTabPage.Controls.Add(this.PhysicsDictionaryTextBox);
             this.BaseArchetypeTabPage.Controls.Add(this.DrawableDictionaryTextBox);
@@ -193,9 +195,20 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.ArchetypeNameTextBox.Location = new System.Drawing.Point(113, 9);
             this.ArchetypeNameTextBox.Name = "ArchetypeNameTextBox";
-            this.ArchetypeNameTextBox.Size = new System.Drawing.Size(247, 20);
+            this.ArchetypeNameTextBox.Size = new System.Drawing.Size(181, 20);
             this.ArchetypeNameTextBox.TabIndex = 11;
             this.ArchetypeNameTextBox.TextChanged += new System.EventHandler(this.ArchetypeNameTextBox_TextChanged);
+            // 
+            // RenameArchetypeButton
+            // 
+            this.RenameArchetypeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.RenameArchetypeButton.Location = new System.Drawing.Point(298, 8);
+            this.RenameArchetypeButton.Name = "RenameArchetypeButton";
+            this.RenameArchetypeButton.Size = new System.Drawing.Size(62, 22);
+            this.RenameArchetypeButton.TabIndex = 12;
+            this.RenameArchetypeButton.Text = "Rename...";
+            this.RenameArchetypeButton.UseVisualStyleBackColor = true;
+            this.RenameArchetypeButton.Click += new System.EventHandler(this.RenameArchetypeButton_Click);
             // 
             // ArchetypeFlagsTextBox
             // 
@@ -660,6 +673,7 @@
         private System.Windows.Forms.TextBox BBMaxTextBox;
         private System.Windows.Forms.TextBox BBMinTextBox;
         private System.Windows.Forms.TextBox ArchetypeNameTextBox;
+        private System.Windows.Forms.Button RenameArchetypeButton;
         private System.Windows.Forms.TextBox ArchetypeFlagsTextBox;
         private System.Windows.Forms.TextBox PhysicsDictionaryTextBox;
         private System.Windows.Forms.TextBox ClipDictionaryTextBox;
