@@ -6,6 +6,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>
     <AssemblyName>SprunkMapper</AssemblyName>
+    <!-- SemVer2 (3 parts), as Velopack requires. The assembly version becomes 1.0.0.0, which also names the
+         user settings folder - Settings.Upgrade() only migrates from LOWER versions, so never go below this. -->
+    <Version>1.0.0</Version>
     <ApplicationIcon>CW.ico</ApplicationIcon>
     <Copyright>dexyfex</Copyright>
     <Company>dexyfex software</Company>
@@ -18,6 +21,12 @@
 
   <ItemGroup>
     <Content Include="CW.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Loaded from AppPath\Shaders and AppPath\icons at runtime; the prebuilt shaders live at the repo root. -->
+    <None Include="..\Shaders\*.cso" Link="Shaders\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="..\icons\**\*" Link="icons\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

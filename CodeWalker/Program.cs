@@ -52,6 +52,8 @@ namespace CodeWalker
                 }
             }
 
+            UpgradeSettings(); //must run before anything reads or saves a setting
+
             EnsureJumpList();
 
             //Application.SetHighDpiMode(HighDpiMode.SystemAware);
@@ -103,6 +105,21 @@ namespace CodeWalker
 #endif
         }
 
+
+        static void UpgradeSettings()
+        {
+            //.NET keeps user settings in a folder per assembly version, so every new version starts
+            //from defaults. UpgradeRequired is true only in a fresh folder: copy the previous
+            //version's settings across once. (Upgrade() only looks at LOWER version folders.)
+            if (!Settings.Default.UpgradeRequired) return;
+            try
+            {
+                Settings.Default.Upgrade();
+            }
+            catch { } //a damaged older user.config shouldn't stop the app from starting
+            Settings.Default.UpgradeRequired = false;
+            Settings.Default.Save();
+        }
 
         static void EnsureJumpList()
         {
