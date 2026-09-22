@@ -2179,6 +2179,23 @@ namespace CodeWalker.Project
             if (CurrentProjectFile == null) return false;
             return CurrentProjectFile.ContainsYmap(ymap);
         }
+        public YmapEntityDef[] GetAllProjectEntities()
+        {
+            //every entity in every project ymap, for the viewport's Select All Props button.
+            var res = new List<YmapEntityDef>();
+            if (CurrentProjectFile?.YmapFiles == null) return res.ToArray();
+            foreach (var ymap in CurrentProjectFile.YmapFiles)
+            {
+                if (ymap?.AllEntities == null) continue;
+                foreach (var ent in ymap.AllEntities)
+                {
+                    if (ent == null) continue;
+                    if (ent.MloParent != null) continue; //interior children move with their MLO instance - selecting them too would double-apply a move
+                    res.Add(ent);
+                }
+            }
+            return res.ToArray();
+        }
         public void AutoUpdateYmapFlagsExtents()
         {
             if (CurrentYmapFile == null) return;

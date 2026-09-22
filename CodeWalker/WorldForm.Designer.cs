@@ -255,6 +255,7 @@ namespace CodeWalker
             this.ToolbarSaveAllButton = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             this.ToolbarSelectButton = new CodeWalker.WinForms.ToolStripSplitButtonFix();
+            this.ToolbarSelectAllPropsButton = new System.Windows.Forms.ToolStripButton();
             this.ToolbarSelectEntityButton = new System.Windows.Forms.ToolStripMenuItem();
             this.ToolbarSelectEntityExtensionButton = new System.Windows.Forms.ToolStripMenuItem();
             this.ToolbarSelectArchetypeExtensionButton = new System.Windows.Forms.ToolStripMenuItem();
@@ -2946,6 +2947,7 @@ namespace CodeWalker
             this.ToolbarSaveAllButton,
             this.toolStripSeparator5,
             this.ToolbarSelectButton,
+            this.ToolbarSelectAllPropsButton,
             this.toolStripSeparator1,
             this.ToolbarMoveButton,
             this.ToolbarRotateButton,
@@ -3136,6 +3138,15 @@ namespace CodeWalker
             this.ToolbarSelectButton.Text = "Select objects / Exit edit mode";
             this.ToolbarSelectButton.ToolTipText = "Select objects / Exit edit mode (C, Q)";
             this.ToolbarSelectButton.ButtonClick += new System.EventHandler(this.ToolbarSelectButton_ButtonClick);
+            // 
+            // ToolbarSelectAllPropsButton
+            // 
+            this.ToolbarSelectAllPropsButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.ToolbarSelectAllPropsButton.Name = "ToolbarSelectAllPropsButton";
+            this.ToolbarSelectAllPropsButton.Size = new System.Drawing.Size(100, 22);
+            this.ToolbarSelectAllPropsButton.Text = "Select All Props";
+            this.ToolbarSelectAllPropsButton.ToolTipText = "Select every entity in every ymap loaded in the project";
+            this.ToolbarSelectAllPropsButton.Click += new System.EventHandler(this.ToolbarSelectAllPropsButton_Click);
             // 
             // ToolbarSelectEntityButton
             // 
@@ -3948,6 +3959,7 @@ namespace CodeWalker
         private System.Windows.Forms.Button ControlSettingsButton;
         private System.Windows.Forms.ToolStripMenuItem ToolsMenuOptions;
         private ToolStripSplitButtonFix ToolbarSelectButton;
+        private System.Windows.Forms.ToolStripButton ToolbarSelectAllPropsButton;
         private System.Windows.Forms.ToolStripMenuItem ToolbarSelectEntityButton;
         private System.Windows.Forms.ToolStripMenuItem ToolbarSelectEntityExtensionButton;
         private System.Windows.Forms.ToolStripMenuItem ToolbarSelectArchetypeExtensionButton;

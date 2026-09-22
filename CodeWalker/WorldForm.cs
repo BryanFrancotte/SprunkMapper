@@ -3653,6 +3653,39 @@ namespace CodeWalker
         }
         public void SelectMulti(MapSelection[] items, bool addSelection = false, bool notifyProject = true)
         {
+            if (!addSelection && (items != null) && (items.Length > 1))
+            {
+                //replacing the selection: set it in one go. adding the items one at a time through
+                //SelectItem is O(n^2) (each add copies and scans the whole list), which hangs on large
+                //selections - and UndoStep calls this on every undo/redo of a multi-selection move.
+                SelectItem(null, false, false, false); //clear the old selection (widget, path graphics)
+
+                var sel = new MapSelection();
+                sel.Clear(); //MultipleSelectionRotation/Scale defaults - SetMultipleSelectionItems only sets the center
+                sel.WorldForm = this;
+                sel.SetMultipleSelectionItems(items);
+
+                lock (Renderer.RenderSyncRoot)
+                {
+                    SelectedItem = sel;
+                    Widget.Visible = SelectedItem.CanShowWidget;
+                    if (Widget.Visible)
+                    {
+                        Widget.Position = SelectedItem.WidgetPosition;
+                        Widget.Rotation = SelectedItem.WidgetRotation;
+                        Widget.RotationWidget.EnableAxes = SelectedItem.WidgetRotationAxes;
+                        Widget.ScaleWidget.LockXY = SelectedItem.WidgetScaleLockXY;
+                        Widget.Scale = SelectedItem.WidgetScale;
+                    }
+                }
+                UpdateSelectionUI(true);
+                if (notifyProject && (ProjectForm != null))
+                {
+                    ProjectForm.OnWorldSelectionChanged(SelectedItem);
+                }
+                return;
+            }
+
             SelectItem(null, addSelection, false, notifyProject);
             if (items != null)
             {
@@ -7710,6 +7743,41 @@ namespace CodeWalker
         {
             SetMouseSelect(!ToolbarSelectButton.Checked);
             SetWidgetMode("Default");
+        }
+
+        private const int SelectAllPropsConfirmThreshold = 2000;
+
+        private void ToolbarSelectAllPropsButton_Click(object sender, EventArgs e)
+        {
+            if (ProjectForm?.CurrentProjectFile == null)
+            {
+                MessageBox.Show("Open a project first.", "Select all props");
+                return;
+            }
+            var ents = ProjectForm.GetAllProjectEntities();
+            if (ents.Length == 0)
+            {
+                MessageBox.Show("There are no entities in the project's ymaps.", "Select all props");
+                return;
+            }
+            if (ents.Length > SelectAllPropsConfirmThreshold)
+            {
+                var msg = ents.Length.ToString("N0") + " entities will be selected. The viewport draws a highlight box for every selected item, so it may run slowly.\n\nContinue?";
+                if (MessageBox.Show(msg, "Select all props", MessageBoxButtons.YesNo) != DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            SetSelectionMode("Entity");
+            SetMouseSelect(true);
+
+            var items = new MapSelection[ents.Length];
+            for (int i = 0; i < ents.Length; i++)
+            {
+                items[i] = MapSelection.FromProjectObject(this, ents[i]);
+            }
+            SelectMulti(items);
         }
 
         private void ToolbarSelectEntityButton_Click(object sender, EventArgs e)
