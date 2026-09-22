@@ -39,6 +39,8 @@
     <PackageReference Include="SharpDX.Mathematics" Version="4.2.0" />
     <PackageReference Include="SharpDX.XAudio2" Version="4.2.0" />
     <PackageReference Include="SharpDX.XInput" Version="4.2.0" />
+    <!-- keep in step with the vpk tool version used by release.ps1 -->
+    <PackageReference Include="Velopack" Version="1.2.158" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,6 +50,7 @@
 
   <ItemGroup>
     <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Configuration" />
   </ItemGroup>
 
   <ItemGroup>

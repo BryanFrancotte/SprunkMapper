@@ -1,12 +1,14 @@
 ﻿using CodeWalker.Properties;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Shell;
+using Velopack;
 
 namespace CodeWalker
 {
@@ -18,6 +20,9 @@ namespace CodeWalker
         [STAThread]
         static void Main(string[] args)
         {
+            //must be first: handles Velopack's install/update/uninstall hooks (and exits for those),
+            //and applies an update that was downloaded but not yet installed.
+            VelopackApp.Build().Run();
 
             bool menumode = false;
             bool explorermode = false;
@@ -59,6 +64,8 @@ namespace CodeWalker
             //Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            Utils.AppUpdater.CheckForUpdates(args); //before any window opens, so a restart can't lose work
 
 
             // Always check the GTA folder first thing
@@ -111,6 +118,7 @@ namespace CodeWalker
             //.NET keeps user settings in a folder per assembly version, so every new version starts
             //from defaults. UpgradeRequired is true only in a fresh folder: copy the previous
             //version's settings across once. (Upgrade() only looks at LOWER version folders.)
+            ImportSettingsFromOtherLocation();
             if (!Settings.Default.UpgradeRequired) return;
             try
             {
@@ -119,6 +127,46 @@ namespace CodeWalker
             catch { } //a damaged older user.config shouldn't stop the app from starting
             Settings.Default.UpgradeRequired = false;
             Settings.Default.Save();
+        }
+
+        static void ImportSettingsFromOtherLocation()
+        {
+            //the settings folder is also named after a hash of the exe's PATH:
+            //  %LOCALAPPDATA%\dexyfex_software\SprunkMapper.exe_Url_<hash>\<version>\user.config
+            //so an exe in a new place (the Velopack install, or a copied build folder) starts from an
+            //empty folder that Upgrade() can't see out of. if this location has never saved settings,
+            //copy the most recently used settings file from any other SprunkMapper.exe location.
+            //must run before Settings.Default is first touched.
+            try
+            {
+                var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal);
+                var target = config.FilePath;
+                var locationDir = Directory.GetParent(target)?.Parent;
+                var companyDir = locationDir?.Parent;
+                if ((companyDir == null) || !companyDir.Exists) return;
+                if (locationDir.Exists && (locationDir.GetFiles("user.config", SearchOption.AllDirectories).Length > 0)) return; //has its own settings
+
+                var parts = locationDir.Name.Split('_'); //"<exe name>_<evidence type>_<hash>"
+                if (parts.Length < 3) return;
+                var prefix = string.Join("_", parts.Take(parts.Length - 2)) + "_";
+                var current = Assembly.GetEntryAssembly().GetName().Version;
+
+                FileInfo best = null;
+                foreach (var dir in companyDir.GetDirectories(prefix + "*"))
+                {
+                    if (dir.Name == locationDir.Name) continue;
+                    foreach (var file in dir.GetFiles("user.config", SearchOption.AllDirectories))
+                    {
+                        if (!Version.TryParse(file.Directory.Name, out var ver) || (ver > current)) continue; //never import from a newer version
+                        if ((best == null) || (file.LastWriteTimeUtc > best.LastWriteTimeUtc)) best = file;
+                    }
+                }
+                if (best == null) return;
+
+                Directory.CreateDirectory(Path.GetDirectoryName(target));
+                best.CopyTo(target, false);
+            }
+            catch { } //worst case the app starts with default settings, as it would have anyway
         }
 
         static void EnsureJumpList()
