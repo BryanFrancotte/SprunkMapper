@@ -47,6 +47,7 @@ namespace CodeWalker
             this.StatusBarCheckBox = new System.Windows.Forms.CheckBox();
             this.ViewTabControl = new System.Windows.Forms.TabControl();
             this.ViewWorldTabPage = new System.Windows.Forms.TabPage();
+            this.WorldBlockVanillaSelectionCheckBox = new System.Windows.Forms.CheckBox();
             this.WorldRoxwoodCheckBox = new System.Windows.Forms.CheckBox();
             this.WorldLasVenturasCheckBox = new System.Windows.Forms.CheckBox();
             this.WorldMapPackStatusLabel = new System.Windows.Forms.Label();
@@ -569,6 +570,7 @@ namespace CodeWalker
             // 
             // ViewWorldTabPage
             // 
+            this.ViewWorldTabPage.Controls.Add(this.WorldBlockVanillaSelectionCheckBox);
             this.ViewWorldTabPage.Controls.Add(this.WorldRoxwoodCheckBox);
             this.ViewWorldTabPage.Controls.Add(this.WorldLasVenturasCheckBox);
             this.ViewWorldTabPage.Controls.Add(this.WorldMapPackStatusLabel);
@@ -595,11 +597,22 @@ namespace CodeWalker
             this.ViewWorldTabPage.Text = "World";
             this.ViewWorldTabPage.UseVisualStyleBackColor = true;
             // 
+            // WorldBlockVanillaSelectionCheckBox
+            //
+            this.WorldBlockVanillaSelectionCheckBox.AutoSize = true;
+            this.WorldBlockVanillaSelectionCheckBox.Location = new System.Drawing.Point(6, 260);
+            this.WorldBlockVanillaSelectionCheckBox.Name = "WorldBlockVanillaSelectionCheckBox";
+            this.WorldBlockVanillaSelectionCheckBox.Size = new System.Drawing.Size(147, 17);
+            this.WorldBlockVanillaSelectionCheckBox.TabIndex = 74;
+            this.WorldBlockVanillaSelectionCheckBox.Text = "Block vanilla prop select";
+            this.WorldBlockVanillaSelectionCheckBox.UseVisualStyleBackColor = true;
+            this.WorldBlockVanillaSelectionCheckBox.CheckedChanged += new System.EventHandler(this.WorldBlockVanillaSelectionCheckBox_CheckedChanged);
+            //
             // WorldRoxwoodCheckBox
             //
             this.WorldRoxwoodCheckBox.AutoSize = true;
             this.WorldRoxwoodCheckBox.Enabled = false;
-            this.WorldRoxwoodCheckBox.Location = new System.Drawing.Point(6, 260);
+            this.WorldRoxwoodCheckBox.Location = new System.Drawing.Point(6, 283);
             this.WorldRoxwoodCheckBox.Name = "WorldRoxwoodCheckBox";
             this.WorldRoxwoodCheckBox.Size = new System.Drawing.Size(103, 17);
             this.WorldRoxwoodCheckBox.TabIndex = 71;
@@ -611,7 +624,7 @@ namespace CodeWalker
             //
             this.WorldLasVenturasCheckBox.AutoSize = true;
             this.WorldLasVenturasCheckBox.Enabled = false;
-            this.WorldLasVenturasCheckBox.Location = new System.Drawing.Point(6, 283);
+            this.WorldLasVenturasCheckBox.Location = new System.Drawing.Point(6, 306);
             this.WorldLasVenturasCheckBox.Name = "WorldLasVenturasCheckBox";
             this.WorldLasVenturasCheckBox.Size = new System.Drawing.Size(117, 17);
             this.WorldLasVenturasCheckBox.TabIndex = 72;
@@ -623,7 +636,7 @@ namespace CodeWalker
             //
             this.WorldMapPackStatusLabel.AutoEllipsis = true;
             this.WorldMapPackStatusLabel.ForeColor = System.Drawing.SystemColors.GrayText;
-            this.WorldMapPackStatusLabel.Location = new System.Drawing.Point(6, 306);
+            this.WorldMapPackStatusLabel.Location = new System.Drawing.Point(6, 329);
             this.WorldMapPackStatusLabel.Name = "WorldMapPackStatusLabel";
             this.WorldMapPackStatusLabel.Size = new System.Drawing.Size(182, 32);
             this.WorldMapPackStatusLabel.TabIndex = 73;
@@ -633,42 +646,42 @@ namespace CodeWalker
             //
             this.EnableModsCheckBox.AutoSize = true;
             this.EnableModsCheckBox.Enabled = false;
-            this.EnableModsCheckBox.Location = new System.Drawing.Point(6, 349);
+            this.EnableModsCheckBox.Location = new System.Drawing.Point(6, 372);
             this.EnableModsCheckBox.Name = "EnableModsCheckBox";
             this.EnableModsCheckBox.Size = new System.Drawing.Size(88, 17);
             this.EnableModsCheckBox.TabIndex = 68;
             this.EnableModsCheckBox.Text = "Enable Mods";
             this.EnableModsCheckBox.UseVisualStyleBackColor = true;
             this.EnableModsCheckBox.CheckedChanged += new System.EventHandler(this.EnableModsCheckBox_CheckedChanged);
-            // 
+            //
             // label30
-            // 
+            //
             this.label30.AutoSize = true;
-            this.label30.Location = new System.Drawing.Point(1, 406);
+            this.label30.Location = new System.Drawing.Point(1, 429);
             this.label30.Name = "label30";
             this.label30.Size = new System.Drawing.Size(60, 13);
             this.label30.TabIndex = 70;
             this.label30.Text = "DLC Level:";
-            // 
+            //
             // DlcLevelComboBox
-            // 
+            //
             this.DlcLevelComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.DlcLevelComboBox.Enabled = false;
             this.DlcLevelComboBox.FormattingEnabled = true;
             this.DlcLevelComboBox.Items.AddRange(new object[] {
             "<Loading...>"});
-            this.DlcLevelComboBox.Location = new System.Drawing.Point(62, 403);
+            this.DlcLevelComboBox.Location = new System.Drawing.Point(62, 426);
             this.DlcLevelComboBox.Name = "DlcLevelComboBox";
             this.DlcLevelComboBox.Size = new System.Drawing.Size(126, 21);
             this.DlcLevelComboBox.TabIndex = 70;
             this.DlcLevelComboBox.SelectedIndexChanged += new System.EventHandler(this.DlcLevelComboBox_SelectedIndexChanged);
             this.DlcLevelComboBox.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.DlcLevelComboBox_KeyPress);
-            // 
+            //
             // EnableDlcCheckBox
-            // 
+            //
             this.EnableDlcCheckBox.AutoSize = true;
             this.EnableDlcCheckBox.Enabled = false;
-            this.EnableDlcCheckBox.Location = new System.Drawing.Point(6, 380);
+            this.EnableDlcCheckBox.Location = new System.Drawing.Point(6, 403);
             this.EnableDlcCheckBox.Name = "EnableDlcCheckBox";
             this.EnableDlcCheckBox.Size = new System.Drawing.Size(83, 17);
             this.EnableDlcCheckBox.TabIndex = 69;
@@ -3906,6 +3919,7 @@ namespace CodeWalker
         private System.Windows.Forms.Label label28;
         private System.Windows.Forms.TrackBar MapViewDetailTrackBar;
         private System.Windows.Forms.CheckBox WorldScriptedYmapsCheckBox;
+        private System.Windows.Forms.CheckBox WorldBlockVanillaSelectionCheckBox;
         private System.Windows.Forms.CheckBox WorldRoxwoodCheckBox;
         private System.Windows.Forms.CheckBox WorldLasVenturasCheckBox;
         private System.Windows.Forms.Label WorldMapPackStatusLabel;

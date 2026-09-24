@@ -160,7 +160,8 @@ namespace CodeWalker
 
         bool MouseSelectEnabled = false;
         bool ShowSelectionBounds = true;
-        bool SelectByGeometry = false; //select by geometry needs more work 
+        bool SelectByGeometry = false; //select by geometry needs more work
+        bool BlockVanillaSelection = false; //when true, entity selection ignores props that aren't part of the current project's ymaps
         MapSelection CurMouseHit = new MapSelection();
         MapSelection LastMouseHit = new MapSelection();
         MapSelection PrevMouseHit = new MapSelection();
@@ -2405,6 +2406,11 @@ namespace CodeWalker
             UpdateMouseHitsFromSpace();
             UpdateMouseHitsFromProject();
         }
+        private bool IsProjectEntity(YmapEntityDef entity)
+        {
+            if (entity == null) return false;
+            return ProjectForm?.YmapExistsInProject(entity.Ymap) ?? false;
+        }
         private void UpdateMouseHitsFromRenderer()
         {
             foreach (var rd in Renderer.RenderedDrawables)
@@ -2438,6 +2444,11 @@ namespace CodeWalker
         private void UpdateMouseHits(DrawableBase drawable, Archetype arche, YmapEntityDef entity)
         {
             //if ((SelectionMode == MapSelectionMode.Entity) && !MouseSelectEnabled) return; //performance improvement when not selecting entities...
+
+            if (BlockVanillaSelection && (SelectionMode == MapSelectionMode.Entity) && !IsProjectEntity(entity))
+            {
+                return; //vanilla map props are excluded from mouse selection while this option is enabled
+            }
 
             //test the selected entity/archetype for mouse hit.
             
@@ -7463,6 +7474,11 @@ namespace CodeWalker
             Renderer.ShowScriptedYmaps = WorldScriptedYmapsCheckBox.Checked;
         }
 
+        private void WorldBlockVanillaSelectionCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            BlockVanillaSelection = WorldBlockVanillaSelectionCheckBox.Checked;
+        }
+
         private void WorldRoxwoodCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             ToggleExternalMapPack(roxwoodMapPack, WorldRoxwoodCheckBox, Settings.Default.RoxwoodFolder);
@@ -7760,6 +7776,15 @@ namespace CodeWalker
                 MessageBox.Show("There are no entities in the project's ymaps.", "Select all props");
                 return;
             }
+            if (ProjectForm.CurrentProjectFile.YbnFiles?.Count > 0)
+            {
+                var msg = "This project has " + ProjectForm.CurrentProjectFile.YbnFiles.Count.ToString("N0") + " static collision (.ybn) file(s) loaded. Moving the selected props will NOT move any static collision - it will stay behind at its original position.\n\nContinue?";
+                if (MessageBox.Show(msg, "Select all props", MessageBoxButtons.YesNo) != DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+
             if (ents.Length > SelectAllPropsConfirmThreshold)
             {
                 var msg = ents.Length.ToString("N0") + " entities will be selected. The viewport draws a highlight box for every selected item, so it may run slowly.\n\nContinue?";
