@@ -864,14 +864,20 @@ namespace CodeWalker.Project
             Bounds = bounds;
             Entity = ent;
             StartPosition = startpos;
-            EndPosition = bounds?.Position ?? Vector3.Zero;
+            EndPosition = IsYbnRoot ? bounds.BoxCenter : (bounds?.Position ?? Vector3.Zero);
 
             UpdateGraphics(wf);
         }
 
+        private bool IsYbnRoot => (Bounds != null) && (Bounds.Parent == null) && (Entity == null) && (Bounds.GetRootYbn() != null);
+
         private void Update(WorldForm wf, ref MapSelection sel, Vector3 p)
         {
-            if (Bounds != null)
+            if (IsYbnRoot)
+            {
+                BoundsTranslator.Translate(Bounds, p - Bounds.BoxCenter);
+            }
+            else if (Bounds != null)
             {
                 if (Entity != null)
                 {
@@ -885,6 +891,7 @@ namespace CodeWalker.Project
 
 
             if (Bounds != sel.CollisionBounds) wf.SelectObject(Bounds);
+            else if (IsYbnRoot) sel.AABB = new BoundingBox(Bounds.BoxMin, Bounds.BoxMax);
             wf.SetWidgetPosition(p);
 
             UpdateGraphics(wf);

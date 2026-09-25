@@ -1924,6 +1924,13 @@ namespace CodeWalker
             return space.NodeGrid.GetYndNode(areaid, nodeid);
         }
 
+        public void InvalidateCollisionBounds(Bounds root)
+        {
+            lock (Renderer.RenderSyncRoot)
+            {
+                Renderer.Invalidate(root);
+            }
+        }
         public void UpdateCollisionBoundsGraphics(Bounds b)
         {
             lock (Renderer.RenderSyncRoot)
@@ -5783,6 +5790,12 @@ namespace CodeWalker
 
         private void SetWidgetMode(string mode)
         {
+            if (((mode == "Rotation") || (mode == "Scale")) && SelectedItem.ContainsYbnRoot)
+            {
+                ShowSubtitle("The selection contains static collision (.ybn), which can only be moved, not rotated or scaled.", 4.0f);
+                mode = "Position";
+            }
+
             ToolbarMoveButton.Checked = false;
             ToolbarRotateButton.Checked = false;
             ToolbarScaleButton.Checked = false;
@@ -7776,14 +7789,7 @@ namespace CodeWalker
                 MessageBox.Show("There are no entities in the project's ymaps.", "Select all props");
                 return;
             }
-            if (ProjectForm.CurrentProjectFile.YbnFiles?.Count > 0)
-            {
-                var msg = "This project has " + ProjectForm.CurrentProjectFile.YbnFiles.Count.ToString("N0") + " static collision (.ybn) file(s) loaded. Moving the selected props will NOT move any static collision - it will stay behind at its original position.\n\nContinue?";
-                if (MessageBox.Show(msg, "Select all props", MessageBoxButtons.YesNo) != DialogResult.Yes)
-                {
-                    return;
-                }
-            }
+            var ybns = ProjectForm.GetExteriorProjectYbns(out int interiorYbns);
 
             if (ents.Length > SelectAllPropsConfirmThreshold)
             {
@@ -7797,12 +7803,26 @@ namespace CodeWalker
             SetSelectionMode("Entity");
             SetMouseSelect(true);
 
-            var items = new MapSelection[ents.Length];
+            var items = new MapSelection[ents.Length + ybns.Length];
             for (int i = 0; i < ents.Length; i++)
             {
                 items[i] = MapSelection.FromProjectObject(this, ents[i]);
             }
+            for (int i = 0; i < ybns.Length; i++)
+            {
+                items[ents.Length + i] = MapSelection.FromProjectObject(this, ybns[i].Bounds);
+            }
             SelectMulti(items);
+            if ((Widget.Mode == WidgetMode.Rotation) || (Widget.Mode == WidgetMode.Scale))
+            {
+                SetWidgetMode("Position");
+            }
+
+            var sub = ents.Length.ToString("N0") + " props";
+            if (ybns.Length > 0) sub += " and " + ybns.Length.ToString("N0") + " collision file(s)";
+            sub += " selected.";
+            if (interiorYbns > 0) sub += " " + interiorYbns.ToString("N0") + " interior collision file(s) left out - they follow their MLO.";
+            ShowSubtitle(sub, 5.0f);
         }
 
         private void ToolbarSelectEntityButton_Click(object sender, EventArgs e)

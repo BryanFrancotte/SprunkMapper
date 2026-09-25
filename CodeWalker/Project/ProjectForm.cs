@@ -2203,6 +2203,51 @@ namespace CodeWalker.Project
             }
             return res.ToArray();
         }
+        public YbnFile[] GetExteriorProjectYbns(out int interiorCount)
+        {
+            //project ybns that sit in world space. a ybn named after an MLO archetype is that interior's
+            //collision and already follows the MLO entity, so it must not be moved on its own.
+            interiorCount = 0;
+            var res = new List<YbnFile>();
+            if (CurrentProjectFile?.YbnFiles == null) return res.ToArray();
+
+            var mloNames = new HashSet<uint>();
+            if (CurrentProjectFile.YtypFiles != null)
+            {
+                foreach (var ytyp in CurrentProjectFile.YtypFiles)
+                {
+                    if (ytyp?.AllArchetypes == null) continue;
+                    foreach (var arch in ytyp.AllArchetypes)
+                    {
+                        if (arch is MloArchetype) mloNames.Add(arch.Hash);
+                    }
+                }
+            }
+            if (CurrentProjectFile.YmapFiles != null)
+            {
+                foreach (var ymap in CurrentProjectFile.YmapFiles)
+                {
+                    if (ymap?.AllEntities == null) continue;
+                    foreach (var ent in ymap.AllEntities)
+                    {
+                        if ((ent != null) && ent.IsMlo) mloNames.Add(ent._CEntityDef.archetypeName);
+                    }
+                }
+            }
+
+            foreach (var ybn in CurrentProjectFile.YbnFiles)
+            {
+                if ((ybn == null) || !ybn.Loaded || (ybn.Bounds == null)) continue;
+                var hash = ybn.RpfFileEntry?.ShortNameHash ?? JenkHash.GenHash(Path.GetFileNameWithoutExtension(ybn.Name ?? string.Empty).ToLowerInvariant());
+                if (mloNames.Contains(hash))
+                {
+                    interiorCount++;
+                    continue;
+                }
+                res.Add(ybn);
+            }
+            return res.ToArray();
+        }
         public void AutoUpdateYmapFlagsExtents()
         {
             if (CurrentYmapFile == null) return;
@@ -8062,6 +8107,14 @@ namespace CodeWalker.Project
         }
         private void OnWorldMultiModified(MapSelection[] items)
         {
+            foreach (var item in items)
+            {
+                if (!item.IsYbnRoot) continue;
+                var ybn = item.CollisionBounds.GetRootYbn();
+                if ((ybn == null) || ybn.HasChanged) continue;
+                ybn.HasChanged = true;
+                ProjectExplorer?.SetYbnHasChanged(ybn, true);
+            }
 
             if (items == CurrentMulti)
             {

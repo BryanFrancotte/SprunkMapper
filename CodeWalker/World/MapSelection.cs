@@ -90,6 +90,28 @@ namespace CodeWalker
         public Vector3 CamRel { get; set; }
         public float HitDist { get; set; }
 
+        //a whole standalone ybn: its root has no saved transform, so it is moved with BoundsTranslator instead
+        public bool IsYbnRoot
+        {
+            get
+            {
+                return (CollisionBounds != null) && (CollisionBounds.Parent == null) && (CollisionPoly == null) && (CollisionVertex == null)
+                    && (EntityDef == null) && (CollisionBounds.GetRootYbn() != null);
+            }
+        }
+        public bool ContainsYbnRoot
+        {
+            get
+            {
+                if (MultipleSelectionItems == null) return IsYbnRoot;
+                foreach (var item in MultipleSelectionItems)
+                {
+                    if (item.IsYbnRoot) return true;
+                }
+                return false;
+            }
+        }
+
 
         public bool HasValue
         {
@@ -635,6 +657,7 @@ namespace CodeWalker
                 }
                 else if (CollisionBounds != null)
                 {
+                    if (IsYbnRoot) return CollisionBounds.BoxCenter;
                     if (EntityDef != null) return EntityDef.Position + EntityDef.Orientation.Multiply(CollisionBounds.Position);
                     return CollisionBounds.Position;
                 }
@@ -1057,6 +1080,11 @@ namespace CodeWalker
                 if (EntityDef != null) newpos = Quaternion.Invert(EntityDef.Orientation).Multiply(newpos - EntityDef.Position);
                 CollisionPoly.Position = newpos;
             }
+            else if (IsYbnRoot)
+            {
+                BoundsTranslator.Translate(CollisionBounds, newpos - CollisionBounds.BoxCenter);
+                AABB = new BoundingBox(CollisionBounds.BoxMin, CollisionBounds.BoxMax);
+            }
             else if (CollisionBounds != null)
             {
                 if (EntityDef != null) newpos = Quaternion.Invert(EntityDef.Orientation).Multiply(newpos - EntityDef.Position);
@@ -1142,7 +1170,7 @@ namespace CodeWalker
                     {
                         var collVert = MultipleSelectionItems[i].CollisionVertex;
                         var collPoly = MultipleSelectionItems[i].CollisionPoly;
-                        if ((collVert == null) && (collPoly == null))//skip polys, they use gathered verts
+                        if ((collVert == null) && (collPoly == null) && !MultipleSelectionItems[i].IsYbnRoot)//skip polys, they use gathered verts. ybns can't rotate
                         {
                             var refpos = MultipleSelectionItems[i].WidgetPosition;
                             var relpos = refpos - cen;
@@ -1182,6 +1210,10 @@ namespace CodeWalker
             {
                 if (EntityDef != null) newrot = Quaternion.Normalize(Quaternion.Invert(EntityDef.Orientation) * newrot);
                 CollisionPoly.Orientation = newrot;
+            }
+            else if (IsYbnRoot)
+            {
+                //a whole ybn can only be translated
             }
             else if (CollisionBounds != null)
             {
@@ -1252,7 +1284,7 @@ namespace CodeWalker
                     {
                         var collVert = MultipleSelectionItems[i].CollisionVertex;
                         var collPoly = MultipleSelectionItems[i].CollisionPoly;
-                        if ((collVert == null) && (collPoly == null))//skip polys, they use gathered verts
+                        if ((collVert == null) && (collPoly == null) && !MultipleSelectionItems[i].IsYbnRoot)//skip polys, they use gathered verts. ybns can't scale
                         {
                             var refpos = MultipleSelectionItems[i].WidgetPosition;
                             var relpos = refpos - cen;
@@ -1290,6 +1322,10 @@ namespace CodeWalker
             else if (CollisionPoly != null)
             {
                 CollisionPoly.Scale = newscale;
+            }
+            else if (IsYbnRoot)
+            {
+                //a whole ybn can only be translated
             }
             else if (CollisionBounds != null)
             {
@@ -1391,7 +1427,11 @@ namespace CodeWalker
                     {
                         scenarioYmts[item.ScenarioNode.Ymt] = 1;
                     }
-                    if (item.CollisionBounds != null)
+                    if (item.IsYbnRoot)
+                    {
+                        wf.InvalidateCollisionBounds(item.CollisionBounds);
+                    }
+                    else if (item.CollisionBounds != null)
                     {
                         bounds[item.CollisionBounds] = 1;
                     }
@@ -1485,6 +1525,10 @@ namespace CodeWalker
                 else if (CollisionPoly?.Owner != null)
                 {
                     wf.UpdateCollisionBoundsGraphics(CollisionPoly.Owner);
+                }
+                else if (IsYbnRoot)
+                {
+                    wf.InvalidateCollisionBounds(CollisionBounds);
                 }
                 else if (CollisionBounds != null)
                 {
