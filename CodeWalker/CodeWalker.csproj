@@ -8,7 +8,7 @@
     <AssemblyName>SprunkMapper</AssemblyName>
     <!-- SemVer2 (3 parts), as Velopack requires. The assembly version becomes 1.0.0.0, which also names the
          user settings folder - Settings.Upgrade() only migrates from LOWER versions, so never go below this. -->
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <ApplicationIcon>CW.ico</ApplicationIcon>
     <Copyright>dexyfex</Copyright>
     <Company>dexyfex software</Company>

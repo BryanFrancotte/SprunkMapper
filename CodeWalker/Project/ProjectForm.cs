@@ -380,6 +380,13 @@ namespace CodeWalker.Project
                 (panel) => { panel.SetProject(CurrentProjectFile); }, //updateFunc
                 (panel) => { return true; }); //findFunc
         }
+        public void ShowVerificationServicePanel(bool promote)
+        {
+            ShowPanel(promote,
+                () => { return new VerificationServicePanel(this); }, //createFunc
+                (panel) => { panel.SetProject(CurrentProjectFile); }, //updateFunc
+                (panel) => { return true; }); //findFunc
+        }
         public void ShowEditMultiPanel(bool promote)
         {
             ShowPanel(promote,
@@ -9963,6 +9970,10 @@ namespace CodeWalker.Project
         private void ToolsDeleteGrassMenu_Click(object sender, EventArgs e)
         {
             ShowDeleteGrassPanel(true);
+        }
+        private void ToolsVerificationServiceMenu_Click(object sender, EventArgs e)
+        {
+            ShowVerificationServicePanel(false);
         }
         private void OptionsRenderGtavMapMenu_Click(object sender, EventArgs e)
         {

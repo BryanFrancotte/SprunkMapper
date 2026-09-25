@@ -2586,6 +2586,12 @@ namespace CodeWalker.GameFiles
             archetypeDict.TryGetValue(hash, out arch);
             return arch;
         }
+        public bool TryGetBaseGameArchetype(uint hash, out Archetype arch)
+        {
+            //looks up archetypeDict only, ignoring project/external overlays -
+            //used to detect a project archetype silently overriding a base game one.
+            return archetypeDict.TryGetValue(hash, out arch);
+        }
         public MapDataStoreNode GetMapNode(uint hash)
         {
             if (!IsInited) return null;

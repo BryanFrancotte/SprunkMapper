@@ -77,6 +77,8 @@
             this.ToolsImportMenyooXmlMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator31 = new System.Windows.Forms.ToolStripSeparator();
             this.deleteGrassToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparatorVerification = new System.Windows.Forms.ToolStripSeparator();
+            this.ToolsVerificationServiceMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.YmapMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.YmapNameMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator11 = new System.Windows.Forms.ToolStripSeparator();
@@ -560,7 +562,9 @@
             this.toolStripSeparator2,
             this.ToolsImportMenyooXmlMenu,
             this.toolStripSeparator31,
-            this.deleteGrassToolStripMenuItem});
+            this.deleteGrassToolStripMenuItem,
+            this.toolStripSeparatorVerification,
+            this.ToolsVerificationServiceMenu});
             this.ToolsMenu.Name = "ToolsMenu";
             this.ToolsMenu.Size = new System.Drawing.Size(46, 20);
             this.ToolsMenu.Text = "Tools";
@@ -609,6 +613,18 @@
             this.deleteGrassToolStripMenuItem.Size = new System.Drawing.Size(196, 22);
             this.deleteGrassToolStripMenuItem.Text = "Delete Grass...";
             this.deleteGrassToolStripMenuItem.Click += new System.EventHandler(this.ToolsDeleteGrassMenu_Click);
+            //
+            // toolStripSeparatorVerification
+            //
+            this.toolStripSeparatorVerification.Name = "toolStripSeparatorVerification";
+            this.toolStripSeparatorVerification.Size = new System.Drawing.Size(193, 6);
+            //
+            // ToolsVerificationServiceMenu
+            //
+            this.ToolsVerificationServiceMenu.Name = "ToolsVerificationServiceMenu";
+            this.ToolsVerificationServiceMenu.Size = new System.Drawing.Size(196, 22);
+            this.ToolsVerificationServiceMenu.Text = "Verification Service...";
+            this.ToolsVerificationServiceMenu.Click += new System.EventHandler(this.ToolsVerificationServiceMenu_Click);
             //
             // YmapMenu
             // 
@@ -1752,6 +1768,8 @@
         private System.Windows.Forms.ToolStripMenuItem OptionsRenderProjectItemsMenu;
         private System.Windows.Forms.ToolStripMenuItem ToolsMenu;
         private System.Windows.Forms.ToolStripMenuItem ToolsImportMenyooXmlMenu;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparatorVerification;
+        private System.Windows.Forms.ToolStripMenuItem ToolsVerificationServiceMenu;
         private WeifenLuo.WinFormsUI.Docking.DockPanel MainDockPanel;
         private System.Windows.Forms.ToolStripMenuItem ViewMenu;
         private System.Windows.Forms.ToolStripMenuItem ViewProjectExplorerMenu;
