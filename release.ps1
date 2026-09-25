@@ -6,6 +6,9 @@
   The version comes from <Version> in CodeWalker\CodeWalker.csproj: bump it (3 parts, e.g. 1.0.1 or
   1.1.0-beta.1) and commit before releasing. Never go below 1.0.0 - see the comment in the csproj.
 
+  Update RELEASE_NOTES.md for the new version before releasing - it's packaged into the Velopack
+  release and shown to users in the update dialog.
+
   Output goes to .\Releases (gitignored). Give your friends Releases\SprunkMapper-win-Setup.exe once;
   after that the app updates itself from GitHub on startup.
 
@@ -96,9 +99,11 @@ if ($LASTEXITCODE -ne 0) { Write-Host 'No previous Velopack release found - this
 
 Step 'Packaging'
 # --runtime: the Release build is x64 (PlatformTarget in the csproj); vpk would otherwise assume x86
+$releaseNotes = Join-Path $root 'RELEASE_NOTES.md'
+if (-not (Test-Path $releaseNotes)) { throw "RELEASE_NOTES.md not found at $releaseNotes - update it for this release first" }
 & $vpk pack --packId SprunkMapper --packVersion $version --packDir $outDir --mainExe SprunkMapper.exe --runtime win-x64 `
     --packTitle SprunkMapper --packAuthors BryanFrancotte --icon (Join-Path $root 'CodeWalker\CW.ico') `
-    --outputDir $relDir
+    --releaseNotes $releaseNotes --outputDir $relDir
 if ($LASTEXITCODE -ne 0) { throw 'vpk pack failed' }
 
 if (-not $Publish) {
