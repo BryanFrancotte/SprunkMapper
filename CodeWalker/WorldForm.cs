@@ -5014,16 +5014,31 @@ namespace CodeWalker
         private void MarkUndoStart(Widget w)
         {
             if (!SelectedItem.CanMarkUndo()) return;
-            if (Widget is TransformWidget)
+            if (Widget is TransformWidget tw)
             {
                 UndoStartPosition = Widget.Position;
                 UndoStartRotation = Widget.Rotation;
                 UndoStartScale = Widget.Scale;
+
+                if ((tw.Mode == WidgetMode.Rotation) && (SelectedItem.MultipleSelectionItems != null))
+                {
+                    lock (Renderer.RenderSyncRoot) //rotation changes are applied on the render thread
+                    {
+                        SelectedItem.BeginMultiRotationDrag();
+                    }
+                }
             }
         }
         private void MarkUndoEnd(Widget w)
         {
             if (!SelectedItem.CanMarkUndo()) return;
+            if (SelectedItem.RotationDrag != null)
+            {
+                lock (Renderer.RenderSyncRoot)
+                {
+                    SelectedItem.EndMultiRotationDrag(); //before the undo step copies the selection
+                }
+            }
             TransformWidget tw = Widget as TransformWidget;
             UndoStep s = null;
             if (tw != null)
@@ -5790,9 +5805,15 @@ namespace CodeWalker
 
         private void SetWidgetMode(string mode)
         {
-            if (((mode == "Rotation") || (mode == "Scale")) && SelectedItem.ContainsYbnRoot)
+            if ((mode == "Scale") && SelectedItem.ContainsYbnRoot)
             {
-                ShowSubtitle("The selection contains static collision (.ybn), which can only be moved, not rotated or scaled.", 4.0f);
+                ShowSubtitle("The selection contains static collision (.ybn), which can't be scaled.", 4.0f);
+                mode = "Position";
+            }
+            else if ((mode == "Rotation") && SelectedItem.IsYbnRoot)
+            {
+                //a lone ybn root has no saved orientation to rotate from - it rotates as part of a multi-selection
+                ShowSubtitle("Static collision (.ybn) can only be rotated together with the props (Select All Props).", 4.0f);
                 mode = "Position";
             }
 
@@ -7813,7 +7834,7 @@ namespace CodeWalker
                 items[ents.Length + i] = MapSelection.FromProjectObject(this, ybns[i].Bounds);
             }
             SelectMulti(items);
-            if ((Widget.Mode == WidgetMode.Rotation) || (Widget.Mode == WidgetMode.Scale))
+            if ((Widget.Mode == WidgetMode.Scale) && (ybns.Length > 0))
             {
                 SetWidgetMode("Position");
             }

@@ -42,6 +42,15 @@ namespace CodeWalker
 
 
 
+    //drag-start state of a multi-selection rotation drag, indexed like MultipleSelectionItems
+    public class MultiRotationDrag
+    {
+        public Quaternion StartRotation;
+        public Vector3[] Positions;
+        public Quaternion[] Rotations;
+        public BoundsSnapshot[] Snapshots; //null for items that aren't whole ybns
+    }
+
     [TypeConverter(typeof(ExpandableObjectConverter))]
     public struct MapSelection
     {
@@ -90,7 +99,7 @@ namespace CodeWalker
         public Vector3 CamRel { get; set; }
         public float HitDist { get; set; }
 
-        //a whole standalone ybn: its root has no saved transform, so it is moved with BoundsTranslator instead
+        //a whole standalone ybn: its root has no saved transform, so it is moved with BoundsTransformer instead
         public bool IsYbnRoot
         {
             get
@@ -99,6 +108,39 @@ namespace CodeWalker
                     && (EntityDef == null) && (CollisionBounds.GetRootYbn() != null);
             }
         }
+        public MultiRotationDrag RotationDrag { get; private set; }
+
+        public void BeginMultiRotationDrag()
+        {
+            RotationDrag = null;
+            var items = MultipleSelectionItems;
+            if (items == null) return;
+            var drag = new MultiRotationDrag
+            {
+                StartRotation = MultipleSelectionRotation,
+                Positions = new Vector3[items.Length],
+                Rotations = new Quaternion[items.Length],
+                Snapshots = new BoundsSnapshot[items.Length],
+            };
+            for (int i = 0; i < items.Length; i++)
+            {
+                drag.Positions[i] = items[i].WidgetPosition;
+                drag.Rotations[i] = items[i].WidgetRotation;
+                if (items[i].IsYbnRoot) drag.Snapshots[i] = new BoundsSnapshot(items[i].CollisionBounds);
+            }
+            RotationDrag = drag;
+        }
+        public void EndMultiRotationDrag()
+        {
+            var drag = RotationDrag;
+            RotationDrag = null;
+            if (drag == null) return;
+            foreach (var snap in drag.Snapshots)
+            {
+                if (snap != null) BoundsTransformer.RebuildBVH(snap.Root); //skipped while dragging - needed for ray/mouse hits
+            }
+        }
+
         public bool ContainsYbnRoot
         {
             get
@@ -216,6 +258,7 @@ namespace CodeWalker
 
         public void Clear()
         {
+            RotationDrag = null;
             EntityDef = null;
             Archetype = null;
             Drawable = null;
@@ -1082,7 +1125,7 @@ namespace CodeWalker
             }
             else if (IsYbnRoot)
             {
-                BoundsTranslator.Translate(CollisionBounds, newpos - CollisionBounds.BoxCenter);
+                BoundsTransformer.Translate(CollisionBounds, newpos - CollisionBounds.BoxCenter);
                 AABB = new BoundingBox(CollisionBounds.BoxMin, CollisionBounds.BoxMax);
             }
             else if (CollisionBounds != null)
@@ -1165,18 +1208,33 @@ namespace CodeWalker
                     var cen = MultipleSelectionCenter;
                     var orinv = Quaternion.Invert(MultipleSelectionRotation);
                     var trans = newrot * orinv;
+
+                    //during a widget drag, rotate from the drag-start state by the total rotation so far.
+                    //stacking a small rotation every frame drifts by centimetres at world coordinates.
+                    var drag = RotationDrag;
+                    if ((drag != null) && (drag.Positions.Length != MultipleSelectionItems.Length)) drag = null;
+                    var itemTrans = (drag != null) ? Quaternion.Normalize(newrot * Quaternion.Invert(drag.StartRotation)) : trans;
+
                     YmapEntityDef ent = null;//hack to use an entity for multple selections... buggy if entities mismatch!!!
                     for (int i = 0; i < MultipleSelectionItems.Length; i++)
                     {
                         var collVert = MultipleSelectionItems[i].CollisionVertex;
                         var collPoly = MultipleSelectionItems[i].CollisionPoly;
-                        if ((collVert == null) && (collPoly == null) && !MultipleSelectionItems[i].IsYbnRoot)//skip polys, they use gathered verts. ybns can't rotate
+                        if (MultipleSelectionItems[i].IsYbnRoot)
                         {
-                            var refpos = MultipleSelectionItems[i].WidgetPosition;
+                            var root = MultipleSelectionItems[i].CollisionBounds;
+                            drag?.Snapshots[i]?.Restore();
+                            BoundsTransformer.Rotate(root, itemTrans, cen);
+                            if (drag == null) BoundsTransformer.RebuildBVH(root); //one-shot rotation (undo/redo, typed values)
+                            MultipleSelectionItems[i].AABB = new BoundingBox(root.BoxMin, root.BoxMax);
+                        }
+                        else if ((collVert == null) && (collPoly == null))//skip polys, they use gathered verts
+                        {
+                            var refpos = (drag != null) ? drag.Positions[i] : MultipleSelectionItems[i].WidgetPosition;
                             var relpos = refpos - cen;
-                            var newpos = trans.Multiply(relpos) + cen;
-                            var refori = MultipleSelectionItems[i].WidgetRotation;
-                            var newori = trans * refori;
+                            var newpos = itemTrans.Multiply(relpos) + cen;
+                            var refori = (drag != null) ? drag.Rotations[i] : MultipleSelectionItems[i].WidgetRotation;
+                            var newori = itemTrans * refori;
                             MultipleSelectionItems[i].SetPosition(newpos, false);
                             MultipleSelectionItems[i].SetRotation(newori, false);
                         }

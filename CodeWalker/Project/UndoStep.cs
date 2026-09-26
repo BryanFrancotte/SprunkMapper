@@ -875,7 +875,7 @@ namespace CodeWalker.Project
         {
             if (IsYbnRoot)
             {
-                BoundsTranslator.Translate(Bounds, p - Bounds.BoxCenter);
+                BoundsTransformer.Translate(Bounds, p - Bounds.BoxCenter);
             }
             else if (Bounds != null)
             {
