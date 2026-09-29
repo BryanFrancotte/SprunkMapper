@@ -610,6 +610,11 @@ namespace CodeWalker.Project
             string relpath = GetRelativePath(ybn.FilePath);
             if (string.IsNullOrEmpty(relpath)) relpath = ybn.Name;
             if (YbnFilenames.Contains(relpath)) return false;
+            //interior ybns are matched to their MLO archetype by this hash - left at 0, no project ybn ever matches
+            if ((ybn.RpfFileEntry != null) && (ybn.RpfFileEntry.ShortNameHash == 0) && !string.IsNullOrEmpty(ybn.RpfFileEntry.Name))
+            {
+                ybn.RpfFileEntry.ShortNameHash = JenkHash.GenHash(ybn.RpfFileEntry.GetShortNameLower());
+            }
             YbnFilenames.Add(relpath);
             YbnFiles.Add(ybn);
             return true;

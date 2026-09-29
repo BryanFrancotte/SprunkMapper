@@ -222,6 +222,10 @@ namespace CodeWalker
         {
             InitializeComponent();
 
+            // ProductVersion is the csproj <Version> (keeps any -beta.N suffix) plus "+<commit hash>" from the SDK.
+            var version = Application.ProductVersion.Split('+')[0];
+            Text = "SprunkMapper " + version;
+
             Renderer = new Renderer(this, gameFileCache);
             camera = Renderer.camera;
             timecycle = Renderer.timecycle;

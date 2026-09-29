@@ -2238,7 +2238,8 @@ namespace CodeWalker.Project
             foreach (var ybn in CurrentProjectFile.YbnFiles)
             {
                 if ((ybn == null) || !ybn.Loaded || (ybn.Bounds == null)) continue;
-                var hash = ybn.RpfFileEntry?.ShortNameHash ?? JenkHash.GenHash(Path.GetFileNameWithoutExtension(ybn.Name ?? string.Empty).ToLowerInvariant());
+                var hash = ybn.RpfFileEntry?.ShortNameHash ?? 0;
+                if (hash == 0) hash = JenkHash.GenHash(Path.GetFileNameWithoutExtension(ybn.Name ?? string.Empty).ToLowerInvariant());
                 if (mloNames.Contains(hash))
                 {
                     interiorCount++;
@@ -4230,6 +4231,8 @@ namespace CodeWalker.Project
                     JenkIndex.Ensure(newname);
                     CurrentYbnFile.FilePath = filepath;
                     CurrentYbnFile.RpfFileEntry.Name = new FileInfo(filepath).Name;
+                    CurrentYbnFile.RpfFileEntry.NameLower = null;
+                    CurrentYbnFile.RpfFileEntry.ShortNameHash = JenkHash.GenHash(CurrentYbnFile.RpfFileEntry.GetShortNameLower());
                     CurrentYbnFile.Name = CurrentYbnFile.RpfFileEntry.Name;
                 }
 
