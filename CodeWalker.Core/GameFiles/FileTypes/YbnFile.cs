@@ -17,6 +17,7 @@ namespace CodeWalker.GameFiles
 
         //used by the editor:
         public bool HasChanged { get; set; } = false;
+        public bool IsLockedInProject { get; set; } = false; //project file pinned in place by the user: skipped by Select All, no move widget (editor-only, never saved into the file)
 
 #if DEBUG
         public ResourceAnalyzer Analyzer { get; set; }

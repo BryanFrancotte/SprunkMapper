@@ -50,6 +50,7 @@ namespace CodeWalker
             this.WorldBlockVanillaSelectionCheckBox = new System.Windows.Forms.CheckBox();
             this.WorldRoxwoodCheckBox = new System.Windows.Forms.CheckBox();
             this.WorldLasVenturasCheckBox = new System.Windows.Forms.CheckBox();
+            this.WorldCustomBackdropsButton = new System.Windows.Forms.Button();
             this.WorldMapPackStatusLabel = new System.Windows.Forms.Label();
             this.EnableModsCheckBox = new System.Windows.Forms.CheckBox();
             this.label30 = new System.Windows.Forms.Label();
@@ -573,6 +574,7 @@ namespace CodeWalker
             this.ViewWorldTabPage.Controls.Add(this.WorldBlockVanillaSelectionCheckBox);
             this.ViewWorldTabPage.Controls.Add(this.WorldRoxwoodCheckBox);
             this.ViewWorldTabPage.Controls.Add(this.WorldLasVenturasCheckBox);
+            this.ViewWorldTabPage.Controls.Add(this.WorldCustomBackdropsButton);
             this.ViewWorldTabPage.Controls.Add(this.WorldMapPackStatusLabel);
             this.ViewWorldTabPage.Controls.Add(this.EnableModsCheckBox);
             this.ViewWorldTabPage.Controls.Add(this.label30);
@@ -631,6 +633,17 @@ namespace CodeWalker
             this.WorldLasVenturasCheckBox.Text = "Show Las Venturas";
             this.WorldLasVenturasCheckBox.UseVisualStyleBackColor = true;
             this.WorldLasVenturasCheckBox.CheckedChanged += new System.EventHandler(this.WorldLasVenturasCheckBox_CheckedChanged);
+            //
+            // WorldCustomBackdropsButton
+            //
+            this.WorldCustomBackdropsButton.Enabled = false;
+            this.WorldCustomBackdropsButton.Location = new System.Drawing.Point(115, 279);
+            this.WorldCustomBackdropsButton.Name = "WorldCustomBackdropsButton";
+            this.WorldCustomBackdropsButton.Size = new System.Drawing.Size(73, 23);
+            this.WorldCustomBackdropsButton.TabIndex = 74;
+            this.WorldCustomBackdropsButton.Text = "Custom \u25BE";
+            this.WorldCustomBackdropsButton.UseVisualStyleBackColor = true;
+            this.WorldCustomBackdropsButton.Click += new System.EventHandler(this.WorldCustomBackdropsButton_Click);
             //
             // WorldMapPackStatusLabel
             //
@@ -3922,6 +3935,7 @@ namespace CodeWalker
         private System.Windows.Forms.CheckBox WorldBlockVanillaSelectionCheckBox;
         private System.Windows.Forms.CheckBox WorldRoxwoodCheckBox;
         private System.Windows.Forms.CheckBox WorldLasVenturasCheckBox;
+        private System.Windows.Forms.Button WorldCustomBackdropsButton;
         private System.Windows.Forms.Label WorldMapPackStatusLabel;
         private System.Windows.Forms.ComboBox WeatherRegionComboBox;
         private System.Windows.Forms.Label label29;

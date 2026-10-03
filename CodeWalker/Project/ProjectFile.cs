@@ -129,6 +129,21 @@ namespace CodeWalker.Project
                 Xml.AddChildWithInnerText(doc, ytdselem, "Item", ytdfilename);
             }
 
+            //SprunkMapper: files the user locked in place. derived from the loaded files at save time so renames,
+            //removals and Save As never need to keep a separate list in step. upstream ignores these elements.
+            var lockedymapselem = Xml.AddChild(doc, projelem, "LockedYmapFilenames");
+            foreach (var ymap in YmapFiles)
+            {
+                if ((ymap == null) || !ymap.IsLockedInProject) continue;
+                Xml.AddChildWithInnerText(doc, lockedymapselem, "Item", GetProjectRelativePath(ymap.FilePath, ymap.Name));
+            }
+            var lockedybnselem = Xml.AddChild(doc, projelem, "LockedYbnFilenames");
+            foreach (var ybn in YbnFiles)
+            {
+                if ((ybn == null) || !ybn.IsLockedInProject) continue;
+                Xml.AddChildWithInnerText(doc, lockedybnselem, "Item", GetProjectRelativePath(ybn.FilePath, ybn.Name));
+            }
+
             doc.Save(Filepath);
         }
 
@@ -340,6 +355,39 @@ namespace CodeWalker.Project
                 }
             }
 
+
+            var lockedymaps = ReadFilenameSet(projelem, "LockedYmapFilenames");
+            foreach (var ymap in YmapFiles)
+            {
+                ymap.IsLockedInProject = lockedymaps.Contains(GetProjectRelativePath(ymap.FilePath, ymap.Name));
+            }
+            var lockedybns = ReadFilenameSet(projelem, "LockedYbnFilenames");
+            foreach (var ybn in YbnFiles)
+            {
+                ybn.IsLockedInProject = lockedybns.Contains(GetProjectRelativePath(ybn.FilePath, ybn.Name));
+            }
+
+        }
+
+        private HashSet<string> ReadFilenameSet(XmlElement projelem, string name)
+        {
+            var res = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var elem = Xml.GetChild(projelem, name);
+            if (elem == null) return res;
+            foreach (var node in elem.SelectNodes("Item"))
+            {
+                var el = node as XmlElement;
+                if (!string.IsNullOrEmpty(el?.InnerText)) res.Add(el.InnerText);
+            }
+            return res;
+        }
+
+        //the key a file is listed under in this project - same rule as AddYmapFile/AddYbnFile
+        public string GetProjectRelativePath(string filepath, string name)
+        {
+            string relpath = GetRelativePath(filepath);
+            if (string.IsNullOrEmpty(relpath)) relpath = name;
+            return relpath;
         }
 
 

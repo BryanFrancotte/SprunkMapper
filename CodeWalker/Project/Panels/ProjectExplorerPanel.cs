@@ -22,11 +22,104 @@ namespace CodeWalker.Project.Panels
         private bool inDoubleClick = false; //used in disabling double-click to expand tree nodes
         private List<TreeNode> SelectedNodes = new List<TreeNode>();
 
+        private ContextMenuStrip FileContextMenu;
+        private ToolStripMenuItem LockFileMenuItem;
+        private List<object> ContextMenuFiles = new List<object>();
+
         public ProjectExplorerPanel(ProjectForm projectForm)
         {
             ProjectForm = projectForm;
             InitializeComponent();
+            InitFileContextMenu();
         }
+
+
+        #region file locks (pin a project ymap/ybn in place)
+
+        private void InitFileContextMenu()
+        {
+            LockFileMenuItem = new ToolStripMenuItem("Lock in place");
+            LockFileMenuItem.ToolTipText = "Locked files are left out of Select All Props and can't be moved, rotated or scaled.";
+            LockFileMenuItem.Click += LockFileMenuItem_Click;
+            FileContextMenu = new ContextMenuStrip();
+            FileContextMenu.Items.Add(LockFileMenuItem);
+            ProjectTreeView.NodeMouseClick += ProjectTreeView_NodeMouseClick;
+        }
+
+        private static bool IsLockableFile(object tag)
+        {
+            return (tag is YmapFile) || (tag is YbnFile);
+        }
+        private static bool IsFileLocked(object tag)
+        {
+            if (tag is YmapFile ymap) return ymap.IsLockedInProject;
+            if (tag is YbnFile ybn) return ybn.IsLockedInProject;
+            return false;
+        }
+
+        private static string GetFileNodeText(bool changed, string name, bool locked)
+        {
+            return (changed ? "*" : "") + (locked ? "[locked] " : "") + name;
+        }
+
+        //node colours are reset when the multi-selection highlight is cleared - put the locked grey back
+        private static void ResetNodeColours(TreeNode node)
+        {
+            node.BackColor = Color.Empty;
+            node.ForeColor = IsFileLocked(node.Tag) ? SystemColors.GrayText : Color.Empty;
+        }
+
+        private void ProjectTreeView_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right) return;
+            if (!IsLockableFile(e.Node?.Tag)) return;
+
+            //act on the whole multi-selection when the clicked file is part of it, otherwise only on the clicked file
+            ContextMenuFiles.Clear();
+            if (SelectedNodes.Contains(e.Node))
+            {
+                foreach (var node in SelectedNodes)
+                {
+                    if (IsLockableFile(node.Tag)) ContextMenuFiles.Add(node.Tag);
+                }
+            }
+            else
+            {
+                ContextMenuFiles.Add(e.Node.Tag);
+            }
+
+            bool alllocked = ContextMenuFiles.All(IsFileLocked);
+            string target = (ContextMenuFiles.Count > 1) ? (ContextMenuFiles.Count.ToString() + " files") : "file";
+            LockFileMenuItem.Text = alllocked ? ("Unlock " + target) : ("Lock " + target + " in place");
+            LockFileMenuItem.Tag = !alllocked;
+            FileContextMenu.Show(ProjectTreeView, e.Location);
+        }
+
+        private void LockFileMenuItem_Click(object sender, EventArgs e)
+        {
+            bool locked = (LockFileMenuItem.Tag as bool?) ?? true;
+            ProjectForm?.SetFilesLocked(ContextMenuFiles.ToArray(), locked);
+            ContextMenuFiles.Clear();
+        }
+
+        public void UpdateFileLockedNode(object file)
+        {
+            //refresh a ymap/ybn file node after its lock changed
+            if (ProjectTreeView.Nodes.Count == 0) return;
+            var pnode = ProjectTreeView.Nodes[0];
+            var tnode = GetChildTreeNode(pnode, (file is YbnFile) ? "Ybn" : "Ymap");
+            if (tnode == null) return;
+            foreach (TreeNode node in tnode.Nodes)
+            {
+                if (node.Tag != file) continue;
+                if (file is YmapFile ymap) node.Text = GetFileNodeText(ymap.HasChanged, ymap.RpfFileEntry?.Name ?? ymap.Name, ymap.IsLockedInProject);
+                else if (file is YbnFile ybn) node.Text = GetFileNodeText(ybn.HasChanged, ybn.RpfFileEntry?.Name ?? ybn.Name, ybn.IsLockedInProject);
+                if (!(SelectedNodes.Contains(node) && (SelectedNodes.Count > 1))) ResetNodeColours(node); //keep the multi-selection highlight
+                break;
+            }
+        }
+
+        #endregion
 
 
         public void LoadProjectTree(ProjectFile projectFile)
@@ -49,14 +142,14 @@ namespace CodeWalker.Project.Panels
 
                 foreach (var ymapfile in CurrentProjectFile.YmapFiles)
                 {
-                    var ycstr = ymapfile.HasChanged ? "*" : "";
                     string name = ymapfile.Name;
                     if (ymapfile.RpfFileEntry != null)
                     {
                         name = ymapfile.RpfFileEntry.Name;
                     }
-                    var ymapnode = ymapsnode.Nodes.Add(ycstr + name);
+                    var ymapnode = ymapsnode.Nodes.Add(GetFileNodeText(ymapfile.HasChanged, name, ymapfile.IsLockedInProject));
                     ymapnode.Tag = ymapfile;
+                    ResetNodeColours(ymapnode);
 
                     LoadYmapTreeNodes(ymapfile, ymapnode);
 
@@ -97,14 +190,14 @@ namespace CodeWalker.Project.Panels
 
                 foreach (var ybnfile in CurrentProjectFile.YbnFiles)
                 {
-                    var ycstr = ybnfile.HasChanged ? "*" : "";
                     string name = ybnfile.Name;
                     if (ybnfile.RpfFileEntry != null)
                     {
                         name = ybnfile.RpfFileEntry.Name;
                     }
-                    var yndnode = ybnsnode.Nodes.Add(ycstr + name);
+                    var yndnode = ybnsnode.Nodes.Add(GetFileNodeText(ybnfile.HasChanged, name, ybnfile.IsLockedInProject));
                     yndnode.Tag = ybnfile;
+                    ResetNodeColours(yndnode);
 
                     LoadYbnTreeNodes(ybnfile, yndnode);
                 }
@@ -867,7 +960,6 @@ namespace CodeWalker.Project.Panels
                 var pnode = ProjectTreeView.Nodes[0];
                 var ymnode = GetChildTreeNode(pnode, "Ymap");
                 if (ymnode == null) return;
-                string changestr = changed ? "*" : "";
                 for (int i = 0; i < ymnode.Nodes.Count; i++)
                 {
                     var ynode = ymnode.Nodes[i];
@@ -878,7 +970,7 @@ namespace CodeWalker.Project.Panels
                         {
                             name = ymap.RpfFileEntry.Name;
                         }
-                        ynode.Text = changestr + name;
+                        ynode.Text = GetFileNodeText(changed, name, ymap.IsLockedInProject);
                         break;
                     }
                 }
@@ -915,7 +1007,6 @@ namespace CodeWalker.Project.Panels
                 var pnode = ProjectTreeView.Nodes[0];
                 var ynnode = GetChildTreeNode(pnode, "Ybn");
                 if (ynnode == null) return;
-                string changestr = changed ? "*" : "";
                 for (int i = 0; i < ynnode.Nodes.Count; i++)
                 {
                     var ynode = ynnode.Nodes[i];
@@ -926,7 +1017,7 @@ namespace CodeWalker.Project.Panels
                         {
                             name = ybn.RpfFileEntry.Name;
                         }
-                        ynode.Text = changestr + name;
+                        ynode.Text = GetFileNodeText(changed, name, ybn.IsLockedInProject);
                         break;
                     }
                 }
@@ -2720,8 +2811,7 @@ namespace CodeWalker.Project.Panels
         {
             foreach (var node in SelectedNodes)
             {
-                node.BackColor = Color.Empty;
-                node.ForeColor = Color.Empty;
+                ResetNodeColours(node);
             }
             SelectedNodes.Clear();
         }
@@ -2736,8 +2826,7 @@ namespace CodeWalker.Project.Panels
             {
                 if (SelectedNodes.Contains(e.Node))
                 {
-                    e.Node.BackColor = Color.Empty;
-                    e.Node.ForeColor = Color.Empty;
+                    ResetNodeColours(e.Node);
                     SelectedNodes.Remove(e.Node);
                 }
                 else

@@ -2186,14 +2186,20 @@ namespace CodeWalker.Project
             if (CurrentProjectFile == null) return false;
             return CurrentProjectFile.ContainsYmap(ymap);
         }
-        public YmapEntityDef[] GetAllProjectEntities()
+        public YmapEntityDef[] GetAllProjectEntities(out int lockedCount)
         {
-            //every entity in every project ymap, for the viewport's Select All Props button.
+            //every entity in every unlocked project ymap, for the viewport's Select All Props button.
+            lockedCount = 0;
             var res = new List<YmapEntityDef>();
             if (CurrentProjectFile?.YmapFiles == null) return res.ToArray();
             foreach (var ymap in CurrentProjectFile.YmapFiles)
             {
                 if (ymap?.AllEntities == null) continue;
+                if (ymap.IsLockedInProject)
+                {
+                    lockedCount++; //pinned in place by the user
+                    continue;
+                }
                 foreach (var ent in ymap.AllEntities)
                 {
                     if (ent == null) continue;
@@ -2203,11 +2209,37 @@ namespace CodeWalker.Project
             }
             return res.ToArray();
         }
-        public YbnFile[] GetExteriorProjectYbns(out int interiorCount)
+        public void SetFilesLocked(object[] files, bool locked)
+        {
+            //pin project ymaps/ybns in place: Select All Props skips them and the widget won't move them.
+            //the lock is stored in the .cwproj, never in the files themselves.
+            if ((files == null) || (CurrentProjectFile == null)) return;
+            int count = 0;
+            foreach (var file in files)
+            {
+                if ((file is YmapFile ymap) && (ymap.IsLockedInProject != locked))
+                {
+                    ymap.IsLockedInProject = locked;
+                }
+                else if ((file is YbnFile ybn) && (ybn.IsLockedInProject != locked))
+                {
+                    ybn.IsLockedInProject = locked;
+                }
+                else continue;
+                ProjectExplorer?.UpdateFileLockedNode(file);
+                count++;
+            }
+            if (count == 0) return;
+            SetProjectHasChanged(true);
+            WorldForm?.RefreshWidgetVisibility(); //a selection inside a file that just got locked loses its widget
+        }
+        public YbnFile[] GetExteriorProjectYbns(out int interiorCount, out int lockedCount)
         {
             //project ybns that sit in world space. a ybn named after an MLO archetype is that interior's
             //collision and already follows the MLO entity, so it must not be moved on its own.
+            //ybns the user locked in place are left out too.
             interiorCount = 0;
+            lockedCount = 0;
             var res = new List<YbnFile>();
             if (CurrentProjectFile?.YbnFiles == null) return res.ToArray();
 
@@ -2243,6 +2275,11 @@ namespace CodeWalker.Project
                 if (mloNames.Contains(hash))
                 {
                     interiorCount++;
+                    continue;
+                }
+                if (ybn.IsLockedInProject)
+                {
+                    lockedCount++;
                     continue;
                 }
                 res.Add(ybn);

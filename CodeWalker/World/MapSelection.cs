@@ -599,6 +599,43 @@ namespace CodeWalker
             }
         }
 
+        public bool IsLockedInProject
+        {
+            get
+            {
+                //true when this selection belongs to a project ymap/ybn the user locked in place
+                if (EntityDef != null) return (EntityDef.Ymap ?? EntityDef.MloParent?.Ymap)?.IsLockedInProject ?? false;
+                if (MloEntityDef != null) return (MloEntityDef.Ymap ?? MloEntityDef.MloParent?.Ymap)?.IsLockedInProject ?? false;
+                if (CarGenerator != null) return CarGenerator.Ymap?.IsLockedInProject ?? false;
+                if (LodLight != null) return LodLight.Ymap?.IsLockedInProject ?? false;
+                if (BoxOccluder != null) return BoxOccluder.Ymap?.IsLockedInProject ?? false;
+                if (OccludeModelTri != null) return OccludeModelTri.Ymap?.IsLockedInProject ?? false;
+                if (GrassBatch != null) return GrassBatch.Ymap?.IsLockedInProject ?? false;
+                if (TimeCycleModifier != null) return TimeCycleModifier.Ymap?.IsLockedInProject ?? false;
+                var bounds = CollisionBounds ?? (Bounds)CollisionPoly?.Owner ?? CollisionVertex?.Owner;
+                if (bounds != null) return bounds.GetRootYbn()?.IsLockedInProject ?? false;
+                return false;
+            }
+        }
+
+        //locked backdrop content or a locked project file - can't be moved, rotated or scaled.
+        //a multi-selection counts as locked when any of its items is.
+        public bool IsTransformLocked
+        {
+            get
+            {
+                if (MultipleSelectionItems != null)
+                {
+                    for (int i = 0; i < MultipleSelectionItems.Length; i++)
+                    {
+                        if (MultipleSelectionItems[i].IsTransformLocked) return true;
+                    }
+                    return false;
+                }
+                return IsLockedBackdrop || IsLockedInProject;
+            }
+        }
+
         public bool CanShowWidget
         {
             get
@@ -610,32 +647,32 @@ namespace CodeWalker
                     res = true;
                     for (int i = 0; i < MultipleSelectionItems.Length; i++)
                     {
-                        if (MultipleSelectionItems[i].IsLockedBackdrop)
+                        if (MultipleSelectionItems[i].IsTransformLocked)
                         {
-                            res = false; //don't allow moving a selection containing locked backdrop content
+                            res = false; //don't allow moving a selection containing locked backdrop content or locked project files
                             break;
                         }
                     }
                 }
                 else if (EntityDef != null)
                 {
-                    res = !IsLockedBackdrop;
+                    res = !IsTransformLocked;
                 }
                 else if (CarGenerator != null)
                 {
-                    res = !IsLockedBackdrop;
+                    res = !IsTransformLocked;
                 }
                 else if (LodLight != null)
                 {
-                    res = !IsLockedBackdrop;
+                    res = !IsTransformLocked;
                 }
                 else if (BoxOccluder != null)
                 {
-                    res = !IsLockedBackdrop;
+                    res = !IsTransformLocked;
                 }
                 else if (OccludeModelTri != null)
                 {
-                    res = !IsLockedBackdrop;
+                    res = !IsTransformLocked;
                 }
                 else if (NavPoly != null)
                 {
@@ -643,15 +680,15 @@ namespace CodeWalker
                 }
                 else if (CollisionVertex != null)
                 {
-                    res = true;
+                    res = !IsTransformLocked;
                 }
                 else if (CollisionPoly != null)
                 {
-                    res = true;
+                    res = !IsTransformLocked;
                 }
                 else if (CollisionBounds != null)
                 {
-                    res = true;
+                    res = !IsTransformLocked;
                 }
                 else if (NavPoint != null)
                 {
@@ -1077,7 +1114,7 @@ namespace CodeWalker
 
         public void SetPosition(Vector3 newpos, bool editPivot)
         {
-            if (IsLockedBackdrop) return; //locked backdrop content can't be moved
+            if (IsTransformLocked) return; //locked backdrop content and locked project files can't be moved
 
             if (MultipleSelectionItems != null)
             {
@@ -1196,7 +1233,7 @@ namespace CodeWalker
         }
         public void SetRotation(Quaternion newrot, bool editPivot)
         {
-            if (IsLockedBackdrop) return; //locked backdrop content can't be rotated
+            if (IsTransformLocked) return; //locked backdrop content and locked project files can't be rotated
 
             if (MultipleSelectionItems != null)
             {
@@ -1324,7 +1361,7 @@ namespace CodeWalker
         }
         public void SetScale(Vector3 newscale, bool editPivot)
         {
-            if (IsLockedBackdrop) return; //locked backdrop content can't be scaled
+            if (IsTransformLocked) return; //locked backdrop content and locked project files can't be scaled
 
             if (MultipleSelectionItems != null)
             {

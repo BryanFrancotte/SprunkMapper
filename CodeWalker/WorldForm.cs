@@ -123,7 +123,11 @@ namespace CodeWalker
         //external read-only backdrop map packs (loose FiveM-style folders). Toggle state is never persisted.
         ExternalMapPack roxwoodMapPack = null;
         ExternalMapPack lasVenturasMapPack = null;
-        readonly List<ExternalMapPack> externalMapPacks = new List<ExternalMapPack>();
+        //read by the render thread every frame - never mutated, replaced whole by PublishExternalMapPacks
+        volatile ExternalMapPack[] externalMapPacks = new ExternalMapPack[0];
+        readonly List<ExternalMapPack> customMapPacks = new List<ExternalMapPack>(); //UI thread only, in menu order
+        readonly List<ExternalMapPack> removedMapPacks = new List<ExternalMapPack>(); //UI thread only: still unloading
+        ContextMenuStrip customBackdropsMenu = null;
 
         bool worldymaptimefilter = true;
         bool worldymapweatherfilter = true;
@@ -714,9 +718,10 @@ namespace CodeWalker
                 CutsceneForm.GetVisibleYmaps(camera, renderworldVisibleYmapDict);
             }
 
-            for (int i = 0; i < externalMapPacks.Count; i++)
+            var mappacks = externalMapPacks;
+            for (int i = 0; i < mappacks.Length; i++)
             {
-                externalMapPacks[i].GetVisibleYmaps(camera.Position, renderworldVisibleYmapDict);
+                mappacks[i].GetVisibleYmaps(camera.Position, renderworldVisibleYmapDict);
             }
 
             Renderer.RenderWorld(renderworldVisibleYmapDict, spaceEnts);
@@ -3673,6 +3678,22 @@ namespace CodeWalker
                 //Focus();//DISABLED THIS due to causing problems with using arrows to select in project window!
             }
         }
+        public void RefreshWidgetVisibility()
+        {
+            //re-evaluate the widget for the current selection, e.g. after a project file was locked or unlocked
+            lock (Renderer.RenderSyncRoot)
+            {
+                Widget.Visible = SelectedItem.CanShowWidget;
+                if (Widget.Visible)
+                {
+                    Widget.Position = SelectedItem.WidgetPosition;
+                    Widget.Rotation = SelectedItem.WidgetRotation;
+                    Widget.RotationWidget.EnableAxes = SelectedItem.WidgetRotationAxes;
+                    Widget.ScaleWidget.LockXY = SelectedItem.WidgetScaleLockXY;
+                    Widget.Scale = SelectedItem.WidgetScale;
+                }
+            }
+        }
         public void SelectMulti(MapSelection[] items, bool addSelection = false, bool notifyProject = true)
         {
             if (!addSelection && (items != null) && (items.Length > 1))
@@ -5118,17 +5139,34 @@ namespace CodeWalker
 
         private void InitExternalMapPacks()
         {
-            //Created once, up front, and never removed from the list - the render thread iterates
-            //this list every frame and must not see it mutate. An unloaded pack publishes an empty
-            //snapshot, so its per-frame cost is a null/length check.
-            roxwoodMapPack = new ExternalMapPack("Roxwood", Settings.Default.RoxwoodFolder, gameFileCache);
-            lasVenturasMapPack = new ExternalMapPack("Las Venturas", Settings.Default.LasVenturasFolder, gameFileCache);
-            roxwoodMapPack.StatusChanged = OnExternalMapPackStatusChanged;
-            lasVenturasMapPack.StatusChanged = OnExternalMapPackStatusChanged;
-            roxwoodMapPack.ErrorLog = LogError;
-            lasVenturasMapPack.ErrorLog = LogError;
-            externalMapPacks.Add(roxwoodMapPack);
-            externalMapPacks.Add(lasVenturasMapPack);
+            //The render thread iterates externalMapPacks every frame and must not see it mutate, so
+            //adding or removing a pack publishes a new array instead. An unloaded pack publishes an
+            //empty snapshot, so its per-frame cost is a null/length check.
+            roxwoodMapPack = CreateExternalMapPack("Roxwood", Settings.Default.RoxwoodFolder);
+            lasVenturasMapPack = CreateExternalMapPack("Las Venturas", Settings.Default.LasVenturasFolder);
+            foreach (var folder in GetCustomBackdropFolders())
+            {
+                customMapPacks.Add(CreateExternalMapPack(GetCustomBackdropName(folder), folder));
+            }
+            PublishExternalMapPacks();
+        }
+
+        private ExternalMapPack CreateExternalMapPack(string name, string folder)
+        {
+            var pack = new ExternalMapPack(name, folder, gameFileCache);
+            pack.StatusChanged = OnExternalMapPackStatusChanged;
+            pack.ErrorLog = LogError;
+            return pack;
+        }
+
+        private void PublishExternalMapPacks()
+        {
+            var packs = new List<ExternalMapPack>();
+            packs.Add(roxwoodMapPack);
+            packs.Add(lasVenturasMapPack);
+            packs.AddRange(customMapPacks);
+            packs.AddRange(removedMapPacks); //kept until their unload finishes, so the render thread sees them go empty first
+            externalMapPacks = packs.ToArray();
         }
 
         //Clearing a checkbox from inside its own CheckedChanged handler raises the event again, synchronously.
@@ -5138,19 +5176,25 @@ namespace CodeWalker
 
         private void ToggleExternalMapPack(ExternalMapPack pack, CheckBox checkbox, string folderpath)
         {
-            if (pack == null) return;
             if (suppressMapPackToggle) return;
-            if (checkbox.Checked)
+            ToggleExternalMapPack(pack, checkbox.Checked, () => UncheckMapPackCheckBox(checkbox), folderpath);
+        }
+
+        //uncheck: reverts the toggle's UI when the pack can't be loaded right now (may be null)
+        private void ToggleExternalMapPack(ExternalMapPack pack, bool load, Action uncheck, string folderpath)
+        {
+            if (pack == null) return;
+            if (load)
             {
                 if (!gameFileCache.IsInited)
                 {
-                    UncheckMapPackCheckBox(checkbox);
+                    uncheck?.Invoke();
                     UpdateMapPackStatusLabel(pack.Name + ": game files still loading.");
                     return;
                 }
                 if (pack.State == ExternalMapPackState.Unloading)
                 {
-                    UncheckMapPackCheckBox(checkbox);
+                    uncheck?.Invoke();
                     UpdateMapPackStatusLabel(pack.Name + ": still unloading, try again in a moment.");
                     return;
                 }
@@ -5158,7 +5202,7 @@ namespace CodeWalker
                 if (!pack.BeginLoad())
                 {
                     //leave it checked only if it really is loading or already loaded
-                    if (!pack.IsLoading && !pack.IsLoaded) UncheckMapPackCheckBox(checkbox);
+                    if (!pack.IsLoading && !pack.IsLoaded) uncheck?.Invoke();
                     UpdateMapPackStatusLabel(pack.Status);
                     return;
                 }
@@ -5170,6 +5214,153 @@ namespace CodeWalker
                 UpdateMapPackStatusLabel(pack.Name + ": unloading...");
             }
         }
+
+        #region custom backdrops (any resource folder, shown like Roxwood/LV)
+
+        private List<string> GetCustomBackdropFolders()
+        {
+            var res = new List<string>();
+            var str = Settings.Default.CustomBackdropFolders;
+            if (string.IsNullOrEmpty(str)) return res;
+            foreach (var line in str.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var folder = line.Trim();
+                if (folder.Length > 0) res.Add(folder);
+            }
+            return res;
+        }
+
+        private void SaveCustomBackdropFolders()
+        {
+            Settings.Default.CustomBackdropFolders = string.Join("\n", customMapPacks.Select(p => p.FolderPath));
+            Settings.Default.Save();
+        }
+
+        private static string GetCustomBackdropName(string folder)
+        {
+            var name = System.IO.Path.GetFileName(folder.TrimEnd('\\', '/'));
+            return string.IsNullOrEmpty(name) ? folder : name;
+        }
+
+        private static bool SameFolder(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
+            try
+            {
+                a = System.IO.Path.GetFullPath(a).TrimEnd('\\', '/');
+                b = System.IO.Path.GetFullPath(b).TrimEnd('\\', '/');
+            }
+            catch { }
+            return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void WorldCustomBackdropsButton_Click(object sender, EventArgs e)
+        {
+            if (customBackdropsMenu == null) customBackdropsMenu = new ContextMenuStrip();
+            var menu = customBackdropsMenu;
+            menu.Items.Clear();
+
+            foreach (var pack in customMapPacks)
+            {
+                var item = new ToolStripMenuItem(pack.Name);
+                item.ToolTipText = pack.FolderPath;
+                item.Checked = pack.IsLoading || pack.IsLoaded;
+                item.Tag = pack;
+                item.Click += CustomBackdropToggleMenuItem_Click;
+                menu.Items.Add(item);
+            }
+            if (customMapPacks.Count == 0)
+            {
+                menu.Items.Add(new ToolStripMenuItem("(no custom backdrops)") { Enabled = false });
+            }
+
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(new ToolStripMenuItem("Add folder...", null, CustomBackdropAddMenuItem_Click));
+            var remove = new ToolStripMenuItem("Remove");
+            foreach (var pack in customMapPacks)
+            {
+                var item = new ToolStripMenuItem(pack.Name);
+                item.ToolTipText = pack.FolderPath;
+                item.Tag = pack;
+                item.Click += CustomBackdropRemoveMenuItem_Click;
+                remove.DropDownItems.Add(item);
+            }
+            remove.Enabled = (customMapPacks.Count > 0);
+            menu.Items.Add(remove);
+
+            menu.Show(WorldCustomBackdropsButton, new System.Drawing.Point(0, WorldCustomBackdropsButton.Height));
+        }
+
+        private void CustomBackdropToggleMenuItem_Click(object sender, EventArgs e)
+        {
+            var pack = (sender as ToolStripMenuItem)?.Tag as ExternalMapPack;
+            if (pack == null) return;
+            bool load = !(pack.IsLoading || pack.IsLoaded);
+            ToggleExternalMapPack(pack, load, null, pack.FolderPath);
+        }
+
+        private void CustomBackdropAddMenuItem_Click(object sender, EventArgs e)
+        {
+            string folder;
+            using (var fbd = new FolderBrowserDialog())
+            {
+                fbd.Description = "Select a resource folder to show as a locked backdrop";
+                if (fbd.ShowDialogNew() != DialogResult.OK) return;
+                folder = fbd.SelectedPath;
+            }
+            if (string.IsNullOrEmpty(folder)) return;
+
+            if (SameFolder(folder, Settings.Default.RoxwoodFolder) || SameFolder(folder, Settings.Default.LasVenturasFolder))
+            {
+                MessageBox.Show("That folder is already the Roxwood or Las Venturas backdrop.", "Custom backdrops");
+                return;
+            }
+            if (customMapPacks.Any(p => SameFolder(p.FolderPath, folder)))
+            {
+                MessageBox.Show("That folder is already in the custom backdrop list.", "Custom backdrops");
+                return;
+            }
+
+            var pack = CreateExternalMapPack(GetCustomBackdropName(folder), folder);
+            customMapPacks.Add(pack);
+            PublishExternalMapPacks();
+            SaveCustomBackdropFolders();
+            ToggleExternalMapPack(pack, true, null, folder); //show it straight away
+        }
+
+        private void CustomBackdropRemoveMenuItem_Click(object sender, EventArgs e)
+        {
+            var pack = (sender as ToolStripMenuItem)?.Tag as ExternalMapPack;
+            if ((pack == null) || !customMapPacks.Remove(pack)) return;
+            SaveCustomBackdropFolders();
+
+            //keep it in the render list until the unload is done - the render thread has to see its snapshot go empty
+            removedMapPacks.Add(pack);
+            PublishExternalMapPacks();
+            if (!pack.BeginUnload(() => OnCustomBackdropUnloaded(pack)))
+            {
+                OnCustomBackdropUnloaded(pack); //already unloading from an earlier toggle (its snapshot is empty already) or never loaded
+            }
+            UpdateMapPackStatusLabel(pack.Name + ": removed.");
+        }
+
+        private void OnCustomBackdropUnloaded(ExternalMapPack pack)
+        {
+            //called on the pack's unload thread, or synchronously when it was never loaded
+            try
+            {
+                if (!formopen) return;
+                if (InvokeRequired)
+                {
+                    BeginInvoke(new Action(() => { OnCustomBackdropUnloaded(pack); }));
+                    return;
+                }
+                if (removedMapPacks.Remove(pack)) PublishExternalMapPacks();
+            }
+            catch { }
+        }
+
+        #endregion
 
         private void UncheckMapPackCheckBox(CheckBox checkbox)
         {
@@ -5224,6 +5415,7 @@ namespace CodeWalker
                     ToolsMenuJenkInd.Enabled = true;
                     WorldRoxwoodCheckBox.Enabled = true;
                     WorldLasVenturasCheckBox.Enabled = true;
+                    WorldCustomBackdropsButton.Enabled = true;
                 }
             }
             catch { }
@@ -6322,9 +6514,10 @@ namespace CodeWalker
 
         private void WorldForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            for (int i = 0; i < externalMapPacks.Count; i++)
+            var mappacks = externalMapPacks;
+            for (int i = 0; i < mappacks.Length; i++)
             {
-                externalMapPacks[i].BeginUnload(null); //cancels any in-progress background load
+                mappacks[i].BeginUnload(null); //cancels any in-progress background load
             }
             SaveSettings();
         }
@@ -7808,13 +8001,15 @@ namespace CodeWalker
                 MessageBox.Show("Open a project first.", "Select all props");
                 return;
             }
-            var ents = ProjectForm.GetAllProjectEntities();
+            var ents = ProjectForm.GetAllProjectEntities(out int lockedYmaps);
+            var ybns = ProjectForm.GetExteriorProjectYbns(out int interiorYbns, out int lockedYbns);
             if (ents.Length == 0)
             {
-                MessageBox.Show("There are no entities in the project's ymaps.", "Select all props");
+                var msg = "There are no entities in the project's ymaps.";
+                if (lockedYmaps > 0) msg = "There are no entities in the project's unlocked ymaps (" + lockedYmaps.ToString("N0") + " locked).";
+                MessageBox.Show(msg, "Select all props");
                 return;
             }
-            var ybns = ProjectForm.GetExteriorProjectYbns(out int interiorYbns);
 
             if (ents.Length > SelectAllPropsConfirmThreshold)
             {
@@ -7847,6 +8042,7 @@ namespace CodeWalker
             if (ybns.Length > 0) sub += " and " + ybns.Length.ToString("N0") + " collision file(s)";
             sub += " selected.";
             if (interiorYbns > 0) sub += " " + interiorYbns.ToString("N0") + " interior collision file(s) left out - they follow their MLO.";
+            if ((lockedYmaps + lockedYbns) > 0) sub += " " + (lockedYmaps + lockedYbns).ToString("N0") + " locked file(s) left out.";
             ShowSubtitle(sub, 5.0f);
         }
 

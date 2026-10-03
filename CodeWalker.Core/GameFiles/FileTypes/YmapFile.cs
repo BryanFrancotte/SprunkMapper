@@ -65,6 +65,7 @@ namespace CodeWalker.GameFiles
         public bool LodManagerUpdate = false; //forces the LOD manager to refresh this ymap when rendering
         public YmapEntityDef[] LodManagerOldEntities = null; //when entities are removed, need the old ones to remove from lod manager
         public bool IsLockedBackdrop { get; set; } = false; //render-only backdrop content: not selectable or editable
+        public bool IsLockedInProject { get; set; } = false; //project file pinned in place by the user: skipped by Select All, no move widget (editor-only, never saved into the file)
 
 
         public YmapFile() : base(null, GameFileType.Ymap)

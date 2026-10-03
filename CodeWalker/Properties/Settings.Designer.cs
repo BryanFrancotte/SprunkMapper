@@ -982,6 +982,18 @@ namespace CodeWalker.Properties {
                 this["LasVenturasFolder"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string CustomBackdropFolders {
+            get {
+                return ((string)(this["CustomBackdropFolders"]));
+            }
+            set {
+                this["CustomBackdropFolders"] = value;
+            }
+        }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
