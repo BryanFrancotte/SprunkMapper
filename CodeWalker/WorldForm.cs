@@ -8514,24 +8514,112 @@ namespace CodeWalker
                 GitRepoLabel.Text = "Repo: " + repo;
             }
 
-            var prevpath = (GitYmapComboBox.SelectedItem as YmapFile)?.FilePath;
-            GitYmapComboBox.Items.Clear();
-            var ymaps = ProjectForm?.CurrentProjectFile?.YmapFiles;
-            if (ymaps != null)
+            var prevpath = (GitLockFileComboBox.SelectedItem as GitLockItem)?.FilePath;
+            GitLockFileComboBox.Items.Clear();
+            var proj = ProjectForm?.CurrentProjectFile;
+            if (proj != null)
             {
-                foreach (var ymap in ymaps)
+                //only the files the repo's .gitattributes marks as lockable
+                var files = proj.YmapFiles.Cast<GameFile>().Concat(proj.YtypFiles).Concat(proj.YtdFiles)
+                    .Concat(proj.YdrFiles).Concat(proj.YddFiles).Concat(proj.YftFiles).Concat(proj.YbnFiles)
+                    .Concat(proj.YndFiles).Concat(proj.YnvFiles).Concat(proj.ScenarioFiles).Concat(proj.AudioRelFiles)
+                    .Where(f => !string.IsNullOrEmpty(f?.FilePath))
+                    .Select(f => new { f.FilePath, RelPath = GitHelper.GetRelativePath(repo, f.FilePath) })
+                    .Where(f => f.RelPath != null)
+                    .ToList();
+                var lockable = new HashSet<string>(GitHelper.GetLockablePaths(repo, files.Select(f => f.RelPath)), StringComparer.OrdinalIgnoreCase);
+                foreach (var file in files.Where(f => lockable.Contains(f.RelPath)))
                 {
-                    GitYmapComboBox.Items.Add(ymap);
-                    if ((prevpath != null) && (ymap.FilePath == prevpath))
+                    //"name  (folder)": the same name can exist in several folders
+                    var folder = System.IO.Path.GetDirectoryName(file.RelPath.Replace('/', '\\')).Replace('\\', '/');
+                    var item = new GitLockItem() { FilePath = file.FilePath, Text = System.IO.Path.GetFileName(file.RelPath) + "  (" + folder + ")" };
+                    GitLockFileComboBox.Items.Add(item);
+                    if ((prevpath != null) && (file.FilePath == prevpath))
                     {
-                        GitYmapComboBox.SelectedItem = ymap;
+                        GitLockFileComboBox.SelectedItem = item;
                     }
                 }
             }
-            if ((GitYmapComboBox.SelectedIndex < 0) && (GitYmapComboBox.Items.Count > 0))
+            if ((GitLockFileComboBox.SelectedIndex < 0) && (GitLockFileComboBox.Items.Count > 0))
             {
-                GitYmapComboBox.SelectedIndex = 0;
+                GitLockFileComboBox.SelectedIndex = 0;
             }
+
+            RefreshGitPropsFolders(null);
+        }
+
+        private void RefreshGitPropsFolders(string selectFolder)
+        {
+            var prevfolder = selectFolder ?? (GitPropsFolderComboBox.SelectedItem as GitLockItem)?.FilePath;
+            GitPropsFolderComboBox.Items.Clear();
+            var propsfolder = GetGitPropsCustomFolder();
+            if ((propsfolder != null) && System.IO.Directory.Exists(propsfolder))
+            {
+                foreach (var dir in System.IO.Directory.GetDirectories(propsfolder).OrderBy(d => d, StringComparer.OrdinalIgnoreCase))
+                {
+                    var item = new GitLockItem() { FilePath = dir, Text = System.IO.Path.GetFileName(dir) };
+                    GitPropsFolderComboBox.Items.Add(item);
+                    if ((prevfolder != null) && string.Equals(dir, prevfolder, StringComparison.OrdinalIgnoreCase))
+                    {
+                        GitPropsFolderComboBox.SelectedItem = item;
+                    }
+                }
+            }
+            if ((GitPropsFolderComboBox.SelectedIndex < 0) && (GitPropsFolderComboBox.Items.Count > 0))
+            {
+                GitPropsFolderComboBox.SelectedIndex = 0;
+            }
+        }
+
+        private string GetGitPropsCustomFolder()
+        {
+            //the resource's stream\props-custom folder: a "stream" folder above the opened files, or else <repo>\stream.
+            var proj = ProjectForm?.CurrentProjectFile;
+            var repo = GetGitRepoFolder();
+            if ((proj == null) || (repo == null)) return null;
+            var paths = new List<string>() { proj.Filepath };
+            paths.AddRange(proj.YmapFiles.Cast<GameFile>().Concat(proj.YtypFiles).Concat(proj.YtdFiles).Where(f => f != null).Select(f => f.FilePath));
+            foreach (var path in paths)
+            {
+                if (string.IsNullOrEmpty(path)) continue;
+                var dir = new System.IO.DirectoryInfo(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)));
+                while ((dir != null) && (GitHelper.GetRelativePath(repo, dir.FullName + "\\x") != null)) //stay inside the repo
+                {
+                    if (dir.Name.Equals("stream", StringComparison.OrdinalIgnoreCase)) return System.IO.Path.Combine(dir.FullName, "props-custom");
+                    dir = dir.Parent;
+                }
+            }
+            return System.IO.Path.Combine(repo, "stream", "props-custom");
+        }
+
+        private List<string> GetGitPropsFolderLockPaths(out string foldername)
+        {
+            foldername = null;
+            var item = GitPropsFolderComboBox.SelectedItem as GitLockItem;
+            var repo = GetGitRepoFolder();
+            if ((item == null) || (repo == null) || !System.IO.Directory.Exists(item.FilePath))
+            {
+                MessageBox.Show("Select a props folder first.", "Git");
+                return null;
+            }
+            foldername = item.Text;
+            var allpaths = System.IO.Directory.GetFiles(item.FilePath, "*", System.IO.SearchOption.AllDirectories)
+                .Select(f => GitHelper.GetRelativePath(repo, f))
+                .Where(p => p != null);
+            var paths = GitHelper.GetLockablePaths(repo, allpaths);
+            if (paths.Count == 0)
+            {
+                MessageBox.Show(foldername + " has no lockable files yet.", "Git");
+                return null;
+            }
+            return paths;
+        }
+
+        private class GitLockItem
+        {
+            public string FilePath;
+            public string Text;
+            public override string ToString() { return Text; }
         }
 
         private void SetGitBusy(bool busy)
@@ -8543,6 +8631,9 @@ namespace CodeWalker
             GitLockButton.Enabled = !busy;
             GitUnlockButton.Enabled = !busy;
             GitLocksButton.Enabled = !busy;
+            GitLockFolderButton.Enabled = !busy;
+            GitUnlockFolderButton.Enabled = !busy;
+            GitNewFolderButton.Enabled = !busy;
             GitTabPage.Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
         }
 
@@ -8561,7 +8652,8 @@ namespace CodeWalker
 
         //runs each git command in order, stopping at the first one that fails.
         //done receives the exit code and output of the last command that ran.
-        private void RunGitStepsAsync(IEnumerable<string> steps, Action<int, string> done = null, bool showOutput = true)
+        //with stopOnError false every command runs, and done receives the number of commands that failed instead.
+        private void RunGitStepsAsync(IEnumerable<string> steps, Action<int, string> done = null, bool showOutput = true, bool stopOnError = true)
         {
             if (gitBusy) return;
             var repo = GetGitRepoFolder();
@@ -8576,6 +8668,7 @@ namespace CodeWalker
             Task.Run(() =>
             {
                 int exitcode = 0;
+                int failed = 0;
                 string text = string.Empty;
                 foreach (var args in steplist)
                 {
@@ -8593,9 +8686,13 @@ namespace CodeWalker
                     text = output.ToString();
                     var steptext = text;
                     if (showOutput || (exitcode != 0)) BeginInvoke(new Action(() => { AppendGitOutput(steptext); }));
-                    if (exitcode != 0) break;
+                    if (exitcode != 0)
+                    {
+                        failed++;
+                        if (stopOnError) break;
+                    }
                 }
-                var finalcode = exitcode;
+                var finalcode = stopOnError ? exitcode : failed;
                 var finaltext = text;
                 BeginInvoke(new Action(() =>
                 {
@@ -8633,18 +8730,13 @@ namespace CodeWalker
             return changes;
         }
 
-        private static bool IsGitLockable(string path)
-        {
-            var ext = System.IO.Path.GetExtension(path);
-            return ext.Equals(".ymap", StringComparison.OrdinalIgnoreCase) || ext.Equals(".ytyp", StringComparison.OrdinalIgnoreCase);
-        }
 
-        private string GetGitSelectedYmapPath()
+        private string GetGitSelectedLockFilePath()
         {
-            var ymap = GitYmapComboBox.SelectedItem as YmapFile;
-            if (ymap == null)
+            var item = GitLockFileComboBox.SelectedItem as GitLockItem;
+            if (item == null)
             {
-                MessageBox.Show("Select a ymap first.", "Git");
+                MessageBox.Show("Select a file first.", "Git");
                 return null;
             }
             var repo = GetGitRepoFolder();
@@ -8653,10 +8745,10 @@ namespace CodeWalker
                 MessageBox.Show("Open a project or folder that is inside a git repository first.", "Git");
                 return null;
             }
-            var relpath = GitHelper.GetRelativePath(repo, ymap.FilePath);
+            var relpath = GitHelper.GetRelativePath(repo, item.FilePath);
             if (relpath == null)
             {
-                MessageBox.Show("This ymap isn't inside the git repository:\n" + ymap.FilePath, "Git");
+                MessageBox.Show("This file isn't inside the git repository:\n" + item.FilePath, "Git");
             }
             return relpath;
         }
@@ -8722,10 +8814,10 @@ namespace CodeWalker
                 steps.Add("commit -F \"" + msgfile + "\"");
                 steps.Add("pull --no-rebase --no-edit");
                 steps.Add("push");
-                //new ymaps/ytyps become read-only after the commit, keep them editable for their author.
-                foreach (var change in selected.Where(c => c.IsNew && IsGitLockable(c.Path)))
+                //new lockable files become read-only after the commit, keep them editable for their author.
+                foreach (var path in GitHelper.GetLockablePaths(GetGitRepoFolder(), selected.Where(c => c.IsNew).Select(c => c.Path)))
                 {
-                    steps.Add("lfs lock \"" + change.Path + "\"");
+                    steps.Add("lfs lock \"" + path + "\"");
                 }
 
                 RunGitStepsAsync(steps, (code2, output2) =>
@@ -8762,14 +8854,14 @@ namespace CodeWalker
 
         private void GitLockButton_Click(object sender, EventArgs e)
         {
-            var relpath = GetGitSelectedYmapPath();
+            var relpath = GetGitSelectedLockFilePath();
             if (relpath == null) return;
             RunGitAsync("lfs lock \"" + relpath + "\"");
         }
 
         private void GitUnlockButton_Click(object sender, EventArgs e)
         {
-            var relpath = GetGitSelectedYmapPath();
+            var relpath = GetGitSelectedLockFilePath();
             if (relpath == null) return;
             RunGitAsync("lfs unlock \"" + relpath + "\"");
         }
@@ -8780,6 +8872,92 @@ namespace CodeWalker
             {
                 if ((code == 0) && string.IsNullOrWhiteSpace(output)) AppendGitOutput("No files are locked.");
             });
+        }
+
+        private void GitLockFolderButton_Click(object sender, EventArgs e)
+        {
+            string foldername;
+            var paths = GetGitPropsFolderLockPaths(out foldername);
+            if (paths == null) return;
+            //one lock per file. keep going when one fails, eg a file you already locked.
+            RunGitStepsAsync(paths.Select(p => "lfs lock \"" + p + "\""), (failed, output) =>
+            {
+                if (failed == 0) AppendGitOutput("Locked " + paths.Count + " files in " + foldername + ".");
+                else AppendGitOutput("Locked " + (paths.Count - failed) + " of " + paths.Count + " files in " + foldername + ", see above for the others.");
+            }, true, false);
+        }
+
+        private void GitUnlockFolderButton_Click(object sender, EventArgs e)
+        {
+            string foldername;
+            var paths = GetGitPropsFolderLockPaths(out foldername);
+            if (paths == null) return;
+            RunGitStepsAsync(paths.Select(p => "lfs unlock \"" + p + "\""), (failed, output) =>
+            {
+                if (failed == 0) AppendGitOutput("Unlocked " + paths.Count + " files in " + foldername + ".");
+                else AppendGitOutput("Unlocked " + (paths.Count - failed) + " of " + paths.Count + " files in " + foldername + ", see above for the others.");
+            }, true, false);
+        }
+
+        private void GitNewFolderButton_Click(object sender, EventArgs e)
+        {
+            var propsfolder = GetGitPropsCustomFolder();
+            if (propsfolder == null)
+            {
+                MessageBox.Show("Open a project or folder that is inside a git repository first.", "Git");
+                return;
+            }
+
+            var name = ShowGitTextPrompt("New props folder", "Name of the new folder in props-custom:", "props_");
+            if (name == null) return;
+            name = name.Trim();
+            if ((name.Length == 0) || (name.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0) || (name == ".") || (name == ".."))
+            {
+                MessageBox.Show("\"" + name + "\" isn't a valid folder name.", "New props folder");
+                return;
+            }
+            var folder = System.IO.Path.Combine(propsfolder, name);
+            if (System.IO.Directory.Exists(folder))
+            {
+                MessageBox.Show(name + " already exists in props-custom.", "New props folder");
+                RefreshGitPropsFolders(folder);
+                return;
+            }
+
+            try
+            {
+                System.IO.Directory.CreateDirectory(folder); //also creates props-custom if the stream folder doesn't have one
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Couldn't create the folder: " + ex.Message, "New props folder");
+                return;
+            }
+            AppendGitOutput("Created " + folder + ". Put your props in it, then use Save to GitHub to share them.");
+            RefreshGitPropsFolders(folder);
+        }
+
+        private string ShowGitTextPrompt(string title, string label, string text)
+        {
+            using (var form = new Form())
+            {
+                form.Text = title;
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.StartPosition = FormStartPosition.CenterParent;
+                form.MinimizeBox = false;
+                form.MaximizeBox = false;
+                form.ShowInTaskbar = false;
+                form.ClientSize = new System.Drawing.Size(320, 95);
+                var lbl = new Label() { Text = label, AutoSize = true, Location = new System.Drawing.Point(9, 9) };
+                var box = new TextBox() { Text = text, Location = new System.Drawing.Point(12, 28), Size = new System.Drawing.Size(296, 20) };
+                var ok = new Button() { Text = "OK", DialogResult = DialogResult.OK, Location = new System.Drawing.Point(152, 60), Size = new System.Drawing.Size(75, 25) };
+                var cancel = new Button() { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new System.Drawing.Point(233, 60), Size = new System.Drawing.Size(75, 25) };
+                form.Controls.AddRange(new Control[] { lbl, box, ok, cancel });
+                form.AcceptButton = ok;
+                form.CancelButton = cancel;
+                form.Shown += (s, e) => { box.Focus(); box.SelectionStart = box.Text.Length; };
+                return (form.ShowDialog(this) == DialogResult.OK) ? box.Text : null;
+            }
         }
     }
 

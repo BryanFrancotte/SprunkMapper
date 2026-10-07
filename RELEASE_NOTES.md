@@ -13,15 +13,24 @@ finds the git repository the opened files are in and shows it at the top of the 
   - The message is filled in for you ("Update sprunk_joe.ymap, ..."), so you can just press Enter.
   - It then commits the ticked files, pulls your teammates' work and pushes. If a step fails, it
     stops and shows why.
-  - New `.ymap` and `.ytyp` files you send are locked to you automatically, so you can keep editing
-    them.
+  - New lockable files you send are locked to you automatically, so you can keep editing them.
   - If a file still has unsaved changes in SprunkMapper, you're warned first.
 - **Discard local changes...** throws away every uncommitted change to your files. It lists the
   files and asks for confirmation first, since this can't be undone.
-- **Lock** / **Unlock** claims or releases the ymap picked in the list on GitHub, so only you can
-  edit it. **Locks** shows who holds which file.
+- **Lock** / **Unlock** claims or releases the file picked in the list on GitHub, so only you can
+  edit it. The list only shows the project's lockable files, each with its folder. **Locks** shows
+  who holds which file.
+- **Props folder** lists the folders in `stream/props-custom`:
+  - **Lock** / **Unlock** claims or releases every lockable file in the chosen folder (and its
+    subfolders) at once. If some files can't be locked, for example because a teammate
+    holds them, the others are still locked and you're told which ones failed.
+  - **New...** creates a new folder for your props in `props-custom`, and creates `props-custom`
+    itself if the resource doesn't have one yet.
 
 Everything git prints shows up in the box at the bottom of the tab.
+
+Which files are lockable is set by the repository's `.gitattributes` (files marked `lockable`),
+not by SprunkMapper. Change it there and the Git tab follows.
 
 Note: these git locks are separate from **Lock file in place** in the Project Explorer, which only
 stops props from being moved inside SprunkMapper.
