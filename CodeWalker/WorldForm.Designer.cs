@@ -114,6 +114,17 @@ namespace CodeWalker
             this.SelExtensionPropertyGrid = new CodeWalker.WinForms.ReadOnlyPropertyGrid();
             this.MouseSelectCheckBox = new System.Windows.Forms.CheckBox();
             this.OptionsTabPage = new System.Windows.Forms.TabPage();
+            this.GitTabPage = new System.Windows.Forms.TabPage();
+            this.GitRepoLabel = new System.Windows.Forms.Label();
+            this.GitPullButton = new System.Windows.Forms.Button();
+            this.GitSaveButton = new System.Windows.Forms.Button();
+            this.GitDiscardButton = new System.Windows.Forms.Button();
+            this.GitYmapLabel = new System.Windows.Forms.Label();
+            this.GitYmapComboBox = new System.Windows.Forms.ComboBox();
+            this.GitLockButton = new System.Windows.Forms.Button();
+            this.GitUnlockButton = new System.Windows.Forms.Button();
+            this.GitLocksButton = new System.Windows.Forms.Button();
+            this.GitOutputTextBox = new System.Windows.Forms.TextBox();
             this.OptionsTabControl = new System.Windows.Forms.TabControl();
             this.OptionsGeneralTabPage = new System.Windows.Forms.TabPage();
             this.SaveTimeOfDayCheckBox = new System.Windows.Forms.CheckBox();
@@ -341,6 +352,7 @@ namespace CodeWalker
             this.tabPage13.SuspendLayout();
             this.SelectionExtensionTabPage.SuspendLayout();
             this.OptionsTabPage.SuspendLayout();
+            this.GitTabPage.SuspendLayout();
             this.OptionsTabControl.SuspendLayout();
             this.OptionsGeneralTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MapViewDetailTrackBar)).BeginInit();
@@ -519,6 +531,7 @@ namespace CodeWalker
             this.ToolsTabControl.Controls.Add(this.MarkersTabPage);
             this.ToolsTabControl.Controls.Add(this.SelectionTabPage);
             this.ToolsTabControl.Controls.Add(this.OptionsTabPage);
+            this.ToolsTabControl.Controls.Add(this.GitTabPage);
             this.ToolsTabControl.Location = new System.Drawing.Point(3, 30);
             this.ToolsTabControl.Name = "ToolsTabControl";
             this.ToolsTabControl.SelectedIndex = 0;
@@ -1416,6 +1429,130 @@ namespace CodeWalker
             this.OptionsTabPage.TabIndex = 3;
             this.OptionsTabPage.Text = "Options";
             this.OptionsTabPage.UseVisualStyleBackColor = true;
+            //
+            // GitTabPage
+            //
+            this.GitTabPage.Controls.Add(this.GitRepoLabel);
+            this.GitTabPage.Controls.Add(this.GitPullButton);
+            this.GitTabPage.Controls.Add(this.GitSaveButton);
+            this.GitTabPage.Controls.Add(this.GitDiscardButton);
+            this.GitTabPage.Controls.Add(this.GitYmapLabel);
+            this.GitTabPage.Controls.Add(this.GitYmapComboBox);
+            this.GitTabPage.Controls.Add(this.GitLockButton);
+            this.GitTabPage.Controls.Add(this.GitUnlockButton);
+            this.GitTabPage.Controls.Add(this.GitLocksButton);
+            this.GitTabPage.Controls.Add(this.GitOutputTextBox);
+            this.GitTabPage.Location = new System.Drawing.Point(4, 22);
+            this.GitTabPage.Name = "GitTabPage";
+            this.GitTabPage.Size = new System.Drawing.Size(205, 606);
+            this.GitTabPage.TabIndex = 4;
+            this.GitTabPage.Text = "Git";
+            this.GitTabPage.UseVisualStyleBackColor = true;
+            this.GitTabPage.Enter += new System.EventHandler(this.GitTabPage_Enter);
+            //
+            // GitRepoLabel
+            //
+            this.GitRepoLabel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.GitRepoLabel.AutoEllipsis = true;
+            this.GitRepoLabel.Location = new System.Drawing.Point(6, 8);
+            this.GitRepoLabel.Name = "GitRepoLabel";
+            this.GitRepoLabel.Size = new System.Drawing.Size(193, 13);
+            this.GitRepoLabel.TabIndex = 0;
+            this.GitRepoLabel.Text = "Repo: (no project open)";
+            //
+            // GitPullButton
+            //
+            this.GitPullButton.Location = new System.Drawing.Point(6, 28);
+            this.GitPullButton.Name = "GitPullButton";
+            this.GitPullButton.Size = new System.Drawing.Size(94, 23);
+            this.GitPullButton.TabIndex = 1;
+            this.GitPullButton.Text = "Pull";
+            this.GitPullButton.UseVisualStyleBackColor = true;
+            this.GitPullButton.Click += new System.EventHandler(this.GitPullButton_Click);
+            //
+            // GitSaveButton
+            //
+            this.GitSaveButton.Location = new System.Drawing.Point(105, 28);
+            this.GitSaveButton.Name = "GitSaveButton";
+            this.GitSaveButton.Size = new System.Drawing.Size(94, 23);
+            this.GitSaveButton.TabIndex = 2;
+            this.GitSaveButton.Text = "Save to GitHub";
+            this.GitSaveButton.UseVisualStyleBackColor = true;
+            this.GitSaveButton.Click += new System.EventHandler(this.GitSaveButton_Click);
+            //
+            // GitDiscardButton
+            //
+            this.GitDiscardButton.Location = new System.Drawing.Point(6, 57);
+            this.GitDiscardButton.Name = "GitDiscardButton";
+            this.GitDiscardButton.Size = new System.Drawing.Size(193, 23);
+            this.GitDiscardButton.TabIndex = 3;
+            this.GitDiscardButton.Text = "Discard local changes...";
+            this.GitDiscardButton.UseVisualStyleBackColor = true;
+            this.GitDiscardButton.Click += new System.EventHandler(this.GitDiscardButton_Click);
+            //
+            // GitYmapLabel
+            //
+            this.GitYmapLabel.AutoSize = true;
+            this.GitYmapLabel.Location = new System.Drawing.Point(6, 93);
+            this.GitYmapLabel.Name = "GitYmapLabel";
+            this.GitYmapLabel.Size = new System.Drawing.Size(66, 13);
+            this.GitYmapLabel.TabIndex = 4;
+            this.GitYmapLabel.Text = "LFS lock file:";
+            //
+            // GitYmapComboBox
+            //
+            this.GitYmapComboBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.GitYmapComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.GitYmapComboBox.FormattingEnabled = true;
+            this.GitYmapComboBox.Location = new System.Drawing.Point(6, 109);
+            this.GitYmapComboBox.Name = "GitYmapComboBox";
+            this.GitYmapComboBox.Size = new System.Drawing.Size(193, 21);
+            this.GitYmapComboBox.TabIndex = 5;
+            //
+            // GitLockButton
+            //
+            this.GitLockButton.Location = new System.Drawing.Point(6, 136);
+            this.GitLockButton.Name = "GitLockButton";
+            this.GitLockButton.Size = new System.Drawing.Size(61, 23);
+            this.GitLockButton.TabIndex = 6;
+            this.GitLockButton.Text = "Lock";
+            this.GitLockButton.UseVisualStyleBackColor = true;
+            this.GitLockButton.Click += new System.EventHandler(this.GitLockButton_Click);
+            //
+            // GitUnlockButton
+            //
+            this.GitUnlockButton.Location = new System.Drawing.Point(72, 136);
+            this.GitUnlockButton.Name = "GitUnlockButton";
+            this.GitUnlockButton.Size = new System.Drawing.Size(61, 23);
+            this.GitUnlockButton.TabIndex = 7;
+            this.GitUnlockButton.Text = "Unlock";
+            this.GitUnlockButton.UseVisualStyleBackColor = true;
+            this.GitUnlockButton.Click += new System.EventHandler(this.GitUnlockButton_Click);
+            //
+            // GitLocksButton
+            //
+            this.GitLocksButton.Location = new System.Drawing.Point(138, 136);
+            this.GitLocksButton.Name = "GitLocksButton";
+            this.GitLocksButton.Size = new System.Drawing.Size(61, 23);
+            this.GitLocksButton.TabIndex = 8;
+            this.GitLocksButton.Text = "Locks";
+            this.GitLocksButton.UseVisualStyleBackColor = true;
+            this.GitLocksButton.Click += new System.EventHandler(this.GitLocksButton_Click);
+            //
+            // GitOutputTextBox
+            //
+            this.GitOutputTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.GitOutputTextBox.Location = new System.Drawing.Point(6, 170);
+            this.GitOutputTextBox.Multiline = true;
+            this.GitOutputTextBox.Name = "GitOutputTextBox";
+            this.GitOutputTextBox.ReadOnly = true;
+            this.GitOutputTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.GitOutputTextBox.Size = new System.Drawing.Size(193, 430);
+            this.GitOutputTextBox.TabIndex = 9;
             // 
             // OptionsTabControl
             // 
@@ -3740,6 +3877,8 @@ namespace CodeWalker
             this.tabPage13.ResumeLayout(false);
             this.SelectionExtensionTabPage.ResumeLayout(false);
             this.OptionsTabPage.ResumeLayout(false);
+            this.GitTabPage.ResumeLayout(false);
+            this.GitTabPage.PerformLayout();
             this.OptionsTabControl.ResumeLayout(false);
             this.OptionsGeneralTabPage.ResumeLayout(false);
             this.OptionsGeneralTabPage.PerformLayout();
@@ -3790,6 +3929,17 @@ namespace CodeWalker
         private System.Windows.Forms.TabPage MarkersTabPage;
         private System.Windows.Forms.TabPage SelectionTabPage;
         private System.Windows.Forms.TabPage OptionsTabPage;
+        private System.Windows.Forms.TabPage GitTabPage;
+        private System.Windows.Forms.Label GitRepoLabel;
+        private System.Windows.Forms.Button GitPullButton;
+        private System.Windows.Forms.Button GitSaveButton;
+        private System.Windows.Forms.Button GitDiscardButton;
+        private System.Windows.Forms.Label GitYmapLabel;
+        private System.Windows.Forms.ComboBox GitYmapComboBox;
+        private System.Windows.Forms.Button GitLockButton;
+        private System.Windows.Forms.Button GitUnlockButton;
+        private System.Windows.Forms.Button GitLocksButton;
+        private System.Windows.Forms.TextBox GitOutputTextBox;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.ComboBox ViewModeComboBox;
         private System.Windows.Forms.CheckBox TimedEntitiesCheckBox;

@@ -8470,6 +8470,317 @@ namespace CodeWalker
             SubtitleTimer.Enabled = false;
             SubtitleLabel.Visible = false;
         }
+
+
+
+        //git panel: runs git in the repo that contains the current project, or the files opened in it.
+
+        private bool gitBusy = false;
+
+        private string GetGitRepoFolder()
+        {
+            //use the saved project file if there is one, otherwise the loaded files
+            //(Open Folder / Open Files create an unsaved project with no file path).
+            var proj = ProjectForm?.CurrentProjectFile;
+            if (proj == null) return null;
+            var paths = new List<string>();
+            paths.Add(proj.Filepath);
+            var files = proj.YmapFiles.Cast<GameFile>()
+                .Concat(proj.YtypFiles).Concat(proj.YbnFiles).Concat(proj.YdrFiles)
+                .Concat(proj.YddFiles).Concat(proj.YftFiles).Concat(proj.YtdFiles);
+            paths.AddRange(files.Where(f => f != null).Select(f => f.FilePath));
+
+            foreach (var path in paths)
+            {
+                var repo = GitHelper.FindRepoFolder(path);
+                if (repo != null) return repo;
+            }
+            return null;
+        }
+
+        private void RefreshGitPanel()
+        {
+            var repo = GetGitRepoFolder();
+            if (ProjectForm?.CurrentProjectFile == null)
+            {
+                GitRepoLabel.Text = "Repo: (no project open)";
+            }
+            else if (repo == null)
+            {
+                GitRepoLabel.Text = "Repo: (files are not in a git repo)";
+            }
+            else
+            {
+                GitRepoLabel.Text = "Repo: " + repo;
+            }
+
+            var prevpath = (GitYmapComboBox.SelectedItem as YmapFile)?.FilePath;
+            GitYmapComboBox.Items.Clear();
+            var ymaps = ProjectForm?.CurrentProjectFile?.YmapFiles;
+            if (ymaps != null)
+            {
+                foreach (var ymap in ymaps)
+                {
+                    GitYmapComboBox.Items.Add(ymap);
+                    if ((prevpath != null) && (ymap.FilePath == prevpath))
+                    {
+                        GitYmapComboBox.SelectedItem = ymap;
+                    }
+                }
+            }
+            if ((GitYmapComboBox.SelectedIndex < 0) && (GitYmapComboBox.Items.Count > 0))
+            {
+                GitYmapComboBox.SelectedIndex = 0;
+            }
+        }
+
+        private void SetGitBusy(bool busy)
+        {
+            gitBusy = busy;
+            GitPullButton.Enabled = !busy;
+            GitSaveButton.Enabled = !busy;
+            GitDiscardButton.Enabled = !busy;
+            GitLockButton.Enabled = !busy;
+            GitUnlockButton.Enabled = !busy;
+            GitLocksButton.Enabled = !busy;
+            GitTabPage.Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
+        }
+
+        private void AppendGitOutput(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            text = text.Replace("\r\n", "\n").Replace("\n", "\r\n");
+            if (!text.EndsWith("\r\n")) text += "\r\n";
+            GitOutputTextBox.AppendText(text);
+        }
+
+        private void RunGitAsync(string args, Action<int, string> done = null, bool showOutput = true)
+        {
+            RunGitStepsAsync(new[] { args }, done, showOutput);
+        }
+
+        //runs each git command in order, stopping at the first one that fails.
+        //done receives the exit code and output of the last command that ran.
+        private void RunGitStepsAsync(IEnumerable<string> steps, Action<int, string> done = null, bool showOutput = true)
+        {
+            if (gitBusy) return;
+            var repo = GetGitRepoFolder();
+            if (repo == null)
+            {
+                MessageBox.Show("Open a project or folder that is inside a git repository first.", "Git");
+                return;
+            }
+
+            var steplist = steps.ToList();
+            SetGitBusy(true);
+            Task.Run(() =>
+            {
+                int exitcode = 0;
+                string text = string.Empty;
+                foreach (var args in steplist)
+                {
+                    if (showOutput) BeginInvoke(new Action(() => { AppendGitOutput("> git " + args); }));
+                    var output = new StringBuilder();
+                    try
+                    {
+                        exitcode = GitHelper.Run(repo, args, output);
+                    }
+                    catch (Exception ex)
+                    {
+                        output.AppendLine("Unable to run git: " + ex.Message);
+                        exitcode = -1;
+                    }
+                    text = output.ToString();
+                    var steptext = text;
+                    if (showOutput || (exitcode != 0)) BeginInvoke(new Action(() => { AppendGitOutput(steptext); }));
+                    if (exitcode != 0) break;
+                }
+                var finalcode = exitcode;
+                var finaltext = text;
+                BeginInvoke(new Action(() =>
+                {
+                    SetGitBusy(false);
+                    RefreshGitPanel();
+                    done?.Invoke(finalcode, finaltext);
+                }));
+            });
+        }
+
+        private static List<GitSaveForm.GitChange> ParseGitStatus(string porcelainz)
+        {
+            //output of "status --porcelain -z": entries are "XY path", separated by NUL.
+            //renames/copies are followed by an extra entry holding the original path.
+            var changes = new List<GitSaveForm.GitChange>();
+            var entries = porcelainz.Split('\0');
+            for (int i = 0; i < entries.Length; i++)
+            {
+                var entry = entries[i].Trim('\r', '\n');
+                if (entry.Length < 4) continue;
+                var status = entry.Substring(0, 2);
+                const string statuschars = " MTADRCU?!";
+                if ((statuschars.IndexOf(status[0]) < 0) || (statuschars.IndexOf(status[1]) < 0) || (entry[2] != ' ')) continue; //stderr warnings share the output
+                changes.Add(new GitSaveForm.GitChange() { Status = status, Path = entry.Substring(3) });
+                if ((status[0] == 'R') || (status[0] == 'C'))
+                {
+                    i++;
+                    if (i < entries.Length)
+                    {
+                        var orig = entries[i].Trim('\r', '\n');
+                        if (orig.Length > 0) changes.Add(new GitSaveForm.GitChange() { Status = " D", Path = orig });
+                    }
+                }
+            }
+            return changes;
+        }
+
+        private static bool IsGitLockable(string path)
+        {
+            var ext = System.IO.Path.GetExtension(path);
+            return ext.Equals(".ymap", StringComparison.OrdinalIgnoreCase) || ext.Equals(".ytyp", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string GetGitSelectedYmapPath()
+        {
+            var ymap = GitYmapComboBox.SelectedItem as YmapFile;
+            if (ymap == null)
+            {
+                MessageBox.Show("Select a ymap first.", "Git");
+                return null;
+            }
+            var repo = GetGitRepoFolder();
+            if (repo == null)
+            {
+                MessageBox.Show("Open a project or folder that is inside a git repository first.", "Git");
+                return null;
+            }
+            var relpath = GitHelper.GetRelativePath(repo, ymap.FilePath);
+            if (relpath == null)
+            {
+                MessageBox.Show("This ymap isn't inside the git repository:\n" + ymap.FilePath, "Git");
+            }
+            return relpath;
+        }
+
+        private void GitTabPage_Enter(object sender, EventArgs e)
+        {
+            RefreshGitPanel();
+        }
+
+        private void GitPullButton_Click(object sender, EventArgs e)
+        {
+            RunGitAsync("pull --no-rebase --no-edit", (code, output) =>
+            {
+                if (code == 0) AppendGitOutput("Pull done. Reload the project to see the new changes.");
+            });
+        }
+
+        private void GitSaveButton_Click(object sender, EventArgs e)
+        {
+            //commit the chosen files, pull teammates' work, then push.
+            var unsaved = new List<string>();
+            var proj = ProjectForm?.CurrentProjectFile;
+            if (proj != null)
+            {
+                unsaved.AddRange(proj.YmapFiles.Where(f => (f != null) && f.HasChanged).Select(f => f.Name));
+                unsaved.AddRange(proj.YtypFiles.Where(f => (f != null) && f.HasChanged).Select(f => f.Name));
+            }
+            if (unsaved.Count > 0)
+            {
+                var msg = "These files have unsaved changes in SprunkMapper, so their latest edits won't be sent:\n\n" + string.Join("\n", unsaved) + "\n\nSave them in the project window first. Continue anyway?";
+                if (MessageBox.Show(msg, "Save to GitHub", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            }
+
+            RunGitAsync("-c core.quotepath=false status --porcelain -z --untracked-files=all", (code, output) =>
+            {
+                if (code != 0) return;
+                var changes = ParseGitStatus(output);
+                if (changes.Count == 0)
+                {
+                    AppendGitOutput("No file changes to commit. Sending any earlier commits...");
+                    RunGitStepsAsync(new[] { "pull --no-rebase --no-edit", "push" });
+                    return;
+                }
+
+                List<GitSaveForm.GitChange> selected;
+                string message;
+                using (var form = new GitSaveForm(changes))
+                {
+                    if (form.ShowDialog(this) != DialogResult.OK) return;
+                    selected = form.SelectedChanges;
+                    message = form.CommitMessage;
+                }
+
+                //paths and message go through files: avoids command line length and quoting issues.
+                var utf8 = new UTF8Encoding(false);
+                var pathsfile = System.IO.Path.GetTempFileName();
+                var msgfile = System.IO.Path.GetTempFileName();
+                System.IO.File.WriteAllText(pathsfile, string.Join("\0", selected.Select(c => c.Path)), utf8);
+                System.IO.File.WriteAllText(msgfile, message, utf8);
+
+                var steps = new List<string>();
+                steps.Add("--literal-pathspecs add -A --pathspec-from-file=\"" + pathsfile + "\" --pathspec-file-nul");
+                steps.Add("commit -F \"" + msgfile + "\"");
+                steps.Add("pull --no-rebase --no-edit");
+                steps.Add("push");
+                //new ymaps/ytyps become read-only after the commit, keep them editable for their author.
+                foreach (var change in selected.Where(c => c.IsNew && IsGitLockable(c.Path)))
+                {
+                    steps.Add("lfs lock \"" + change.Path + "\"");
+                }
+
+                RunGitStepsAsync(steps, (code2, output2) =>
+                {
+                    try { System.IO.File.Delete(pathsfile); System.IO.File.Delete(msgfile); } catch { }
+                    if (code2 == 0) AppendGitOutput("Saved to GitHub.");
+                    else AppendGitOutput("Stopped: the last command failed, see above.");
+                });
+            }, false);
+        }
+
+        private void GitDiscardButton_Click(object sender, EventArgs e)
+        {
+            RunGitAsync("-c core.quotepath=false status --short --untracked-files=no", (code, output) =>
+            {
+                if (code != 0) return;
+                if (string.IsNullOrWhiteSpace(output))
+                {
+                    AppendGitOutput("No local changes to discard.");
+                    return;
+                }
+                var lines = output.Trim().Split('\n');
+                var list = string.Join("\n", lines.Take(25));
+                if (lines.Length > 25) list += "\n... and " + (lines.Length - 25) + " more";
+                var msg = "This will permanently discard ALL uncommitted changes to these files:\n\n" + list + "\n\nThis cannot be undone. Continue?";
+                if (MessageBox.Show(msg, "Discard local changes", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+
+                RunGitAsync("checkout -- .", (code2, output2) =>
+                {
+                    if (code2 == 0) AppendGitOutput("Local changes discarded. Reload the project to see the files as they are on disk.");
+                });
+            });
+        }
+
+        private void GitLockButton_Click(object sender, EventArgs e)
+        {
+            var relpath = GetGitSelectedYmapPath();
+            if (relpath == null) return;
+            RunGitAsync("lfs lock \"" + relpath + "\"");
+        }
+
+        private void GitUnlockButton_Click(object sender, EventArgs e)
+        {
+            var relpath = GetGitSelectedYmapPath();
+            if (relpath == null) return;
+            RunGitAsync("lfs unlock \"" + relpath + "\"");
+        }
+
+        private void GitLocksButton_Click(object sender, EventArgs e)
+        {
+            RunGitAsync("lfs locks", (code, output) =>
+            {
+                if ((code == 0) && string.IsNullOrWhiteSpace(output)) AppendGitOutput("No files are locked.");
+            });
+        }
     }
 
     public enum WorldControlMode

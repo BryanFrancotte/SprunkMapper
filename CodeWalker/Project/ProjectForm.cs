@@ -1853,6 +1853,7 @@ namespace CodeWalker.Project
                     var cymap = CurrentYmapFile;
                     foreach (var ymap in CurrentProjectFile.YmapFiles)
                     {
+                        if ((ymap == null) || !ymap.HasChanged) continue; //only save edited files, unchanged ones would just be rewritten
                         CurrentYmapFile = ymap;
                         SaveYmap();
                     }
@@ -1865,6 +1866,7 @@ namespace CodeWalker.Project
                     var cytyp = CurrentYtypFile;
                     foreach (var ytyp in CurrentProjectFile.YtypFiles)
                     {
+                        if ((ytyp == null) || !ytyp.HasChanged) continue; //only save edited files, unchanged ones would just be rewritten
                         CurrentYtypFile = ytyp;
                         SaveYtyp();
                     }
@@ -1877,6 +1879,7 @@ namespace CodeWalker.Project
                     var cybn = CurrentYbnFile;
                     foreach (var ybn in CurrentProjectFile.YbnFiles)
                     {
+                        if ((ybn == null) || !ybn.HasChanged) continue; //only save edited files, unchanged ones would just be rewritten
                         CurrentYbnFile = ybn;
                         SaveYbn();
                     }
@@ -1889,6 +1892,7 @@ namespace CodeWalker.Project
                     var cynd = CurrentYndFile;
                     foreach (var ynd in CurrentProjectFile.YndFiles)
                     {
+                        if ((ynd == null) || !ynd.HasChanged) continue; //only save edited files, unchanged ones would just be rewritten
                         CurrentYndFile = ynd;
                         SaveYnd();
                     }
@@ -1901,6 +1905,7 @@ namespace CodeWalker.Project
                     var cynv = CurrentYnvFile;
                     foreach (var ynv in CurrentProjectFile.YnvFiles)
                     {
+                        if ((ynv == null) || !ynv.HasChanged) continue; //only save edited files, unchanged ones would just be rewritten
                         CurrentYnvFile = ynv;
                         SaveYnv();
                     }
@@ -1913,6 +1918,7 @@ namespace CodeWalker.Project
                     var ctrack = CurrentTrainTrack;
                     foreach (var track in CurrentProjectFile.TrainsFiles)
                     {
+                        if ((track == null) || !track.HasChanged) continue; //only save edited files, unchanged ones would just be rewritten
                         CurrentTrainTrack = track;
                         SaveYnd();
                     }
@@ -1925,6 +1931,7 @@ namespace CodeWalker.Project
                     var cscen = CurrentScenario;
                     foreach (var scen in CurrentProjectFile.ScenarioFiles)
                     {
+                        if ((scen == null) || !scen.HasChanged) continue; //only save edited files, unchanged ones would just be rewritten
                         CurrentScenario = scen;
                         SaveScenario();
                     }
@@ -1937,6 +1944,7 @@ namespace CodeWalker.Project
                     var caudf = CurrentAudioFile;
                     foreach (var audf in CurrentProjectFile.AudioRelFiles)
                     {
+                        if ((audf == null) || !audf.HasChanged) continue; //only save edited files, unchanged ones would just be rewritten
                         CurrentAudioFile = audf;
                         SaveAudioFile();
                     }
@@ -2070,6 +2078,50 @@ namespace CodeWalker.Project
 
             LoadProjectTree();
         }
+        private bool EnsureFileWritable(string filepath)
+        {
+            //files tracked as lockable in git LFS are read-only until locked. offer to lock instead of failing.
+            if (!File.Exists(filepath)) return true;
+            var fi = new FileInfo(filepath);
+            if (!fi.IsReadOnly) return true;
+
+            var repo = CodeWalker.Tools.GitHelper.FindRepoFolder(filepath);
+            var relpath = CodeWalker.Tools.GitHelper.GetRelativePath(repo, filepath);
+            if (relpath == null)
+            {
+                MessageBox.Show(fi.Name + " is read-only and can't be saved.", "Read-only file", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            var msg = fi.Name + " is read-only because you haven't locked it in git.\n\nLock it now (git lfs lock) and save?";
+            if (MessageBox.Show(msg, "File not locked", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return false;
+
+            var output = new StringBuilder();
+            int code;
+            Cursor = Cursors.WaitCursor;
+            try
+            {
+                code = CodeWalker.Tools.GitHelper.Run(repo, "lfs lock \"" + relpath + "\"", output);
+            }
+            catch (Exception ex)
+            {
+                output.AppendLine("Unable to run git: " + ex.Message);
+                code = -1;
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+            }
+
+            fi.Refresh();
+            if ((code != 0) || fi.IsReadOnly)
+            {
+                MessageBox.Show("Couldn't lock " + fi.Name + ", it wasn't saved:\n\n" + output.ToString().Trim(), "File not locked", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            return true;
+        }
+
         public void SaveYmap(bool saveas = false)
         {
             if (CurrentYmapFile == null) return;
@@ -2106,6 +2158,7 @@ namespace CodeWalker.Project
 
             if (data != null)
             {
+                if (!EnsureFileWritable(filepath)) return;
                 File.WriteAllBytes(filepath, data);
             }
 
@@ -3583,6 +3636,7 @@ namespace CodeWalker.Project
 
             if (data != null)
             {
+                if (!EnsureFileWritable(filepath)) return;
                 File.WriteAllBytes(filepath, data);
             }
 
