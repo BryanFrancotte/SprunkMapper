@@ -27,7 +27,8 @@ namespace CodeWalker.Project.Verification
                             Severity = VerificationSeverity.Error,
                             RuleName = Name,
                             FileName = fileName,
-                            Message = $"Archetype '{arch.Name}' conflicts with a base game archetype of the same name."
+                            Message = $"Archetype '{arch.Name}' conflicts with a base game archetype of the same name.",
+                            Entities = VerificationTargets.FindEntitiesUsingArchetype(project, arch.Hash)
                         });
                     }
                 }

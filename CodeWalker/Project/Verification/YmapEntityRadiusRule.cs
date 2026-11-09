@@ -40,7 +40,8 @@ namespace CodeWalker.Project.Verification
                             Severity = VerificationSeverity.Warning,
                             RuleName = Name,
                             FileName = fileName,
-                            Message = $"Entity '{entityName}' is {dist:N0}m from the ymap's center, outside the {MaxRadius:N0}m radius."
+                            Message = $"Entity '{entityName}' is {dist:N0}m from the ymap's center, outside the {MaxRadius:N0}m radius.",
+                            Entities = new[] { entity }
                         });
                     }
                 }

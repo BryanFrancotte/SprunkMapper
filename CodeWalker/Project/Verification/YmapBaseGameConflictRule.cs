@@ -25,7 +25,8 @@ namespace CodeWalker.Project.Verification
                         Severity = VerificationSeverity.Error,
                         RuleName = Name,
                         FileName = fileName,
-                        Message = $"'{fileName}' conflicts with a base game map container (.ymap) of the same name."
+                        Message = $"'{fileName}' conflicts with a base game map container (.ymap) of the same name.",
+                        FocusBox = VerificationTargets.GetBounds(ymap.AllEntities) //the whole ymap is the problem - frame it, don't select every prop
                     });
                 }
             }

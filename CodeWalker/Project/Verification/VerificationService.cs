@@ -12,6 +12,7 @@ namespace CodeWalker.Project.Verification
             new YbnBaseGameConflictRule(),
             new YmapBaseGameConflictRule(),
             new YmapEntityRadiusRule(),
+            new YdrUnusedRule(),
         };
 
         public List<VerificationIssue> RunAll(ProjectFile project, GameFileCache gameFileCache)

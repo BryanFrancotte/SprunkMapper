@@ -1218,7 +1218,7 @@ namespace CodeWalker.Project
             }
         }
 
-        private void PromoteIfPreviewPanel(IDockContent panel)
+        public void PromoteIfPreviewPanel(IDockContent panel)
         {
             if (panel == PreviewPanel)
             {

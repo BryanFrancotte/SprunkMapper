@@ -26,7 +26,8 @@ namespace CodeWalker.Project.Verification
                             Severity = VerificationSeverity.Error,
                             RuleName = Name,
                             FileName = fileName,
-                            Message = $"'{fileName}' conflicts with a base game drawable (.ydr) of the same name."
+                            Message = $"'{fileName}' conflicts with a base game drawable (.ydr) of the same name.",
+                            Entities = VerificationTargets.FindEntitiesUsingArchetype(project, VerificationTargets.FileNameHash(fileName)) //a .ydr is found by its archetype's name
                         });
                     }
                 }
@@ -40,12 +41,14 @@ namespace CodeWalker.Project.Verification
                     var fileName = ytd?.RpfFileEntry?.NameLower ?? ytd?.Name;
                     if (fileName != null && ytdNames.Contains(fileName))
                     {
+                        var ytdHash = VerificationTargets.FileNameHash(fileName);
                         issues.Add(new VerificationIssue
                         {
                             Severity = VerificationSeverity.Error,
                             RuleName = Name,
                             FileName = fileName,
-                            Message = $"'{fileName}' conflicts with a base game texture dictionary (.ytd) of the same name."
+                            Message = $"'{fileName}' conflicts with a base game texture dictionary (.ytd) of the same name.",
+                            Entities = VerificationTargets.FindEntities(project, ent => ent.Archetype?.TextureDict.Hash == ytdHash)
                         });
                     }
                 }

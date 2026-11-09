@@ -75,6 +75,7 @@ namespace CodeWalker.Project.Panels
             this.ResultsListView.TabIndex = 2;
             this.ResultsListView.UseCompatibleStateImageBehavior = false;
             this.ResultsListView.View = System.Windows.Forms.View.Details;
+            this.ResultsListView.DoubleClick += new System.EventHandler(this.ResultsListView_DoubleClick);
             //
             // SeverityColumnHeader
             //

@@ -1,4 +1,5 @@
 using CodeWalker.GameFiles;
+using SharpDX;
 using System.Collections.Generic;
 
 namespace CodeWalker.Project.Verification
@@ -25,7 +26,8 @@ namespace CodeWalker.Project.Verification
                         Severity = VerificationSeverity.Error,
                         RuleName = Name,
                         FileName = fileName,
-                        Message = $"'{fileName}' conflicts with a base game bounds file (.ybn) of the same name."
+                        Message = $"'{fileName}' conflicts with a base game bounds file (.ybn) of the same name.",
+                        FocusBox = (ybn.Bounds != null) ? new BoundingBox(ybn.Bounds.BoxMin, ybn.Bounds.BoxMax) : (BoundingBox?)null
                     });
                 }
             }
