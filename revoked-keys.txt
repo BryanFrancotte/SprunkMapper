@@ -1,0 +1,6 @@
+# SprunkMapper revoked licence keys.
+# SprunkMapper downloads this file from master at startup and refuses any key listed here.
+# One key id per line (8 hex digits, from "SprunkKeyGen list"); anything after # is a comment.
+# Example:
+# 1a2b3c4d  # Name - leaked on Discord, 2026-11-09
+98a74232  # Test - issued while building the feature, 2026-11-09

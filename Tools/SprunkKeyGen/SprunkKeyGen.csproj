@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Issues SprunkMapper licence keys. A developer tool: release.ps1 doesn't build or package it.
+       The signing key lives in %USERPROFILE%\.sprunkmapper, never in this repo. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>SprunkKeyGen</AssemblyName>
+    <RootNamespace>SprunkKeyGen</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- one definition of the key format, shared with the app -->
+    <Compile Include="..\..\CodeWalker\Utils\LicenseToken.cs" Link="LicenseToken.cs" />
+  </ItemGroup>
+
+</Project>

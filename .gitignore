@@ -241,3 +241,6 @@ ModelManifest.xml
 # FAKE - F# Make
 .fake/
 /Toolbar/cammodes.psd
+
+# SprunkKeyGen signing key: must never be committed
+signing-key*

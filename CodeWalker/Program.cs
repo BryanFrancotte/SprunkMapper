@@ -67,6 +67,12 @@ namespace CodeWalker
 
             Utils.AppUpdater.CheckForUpdates(args); //before any window opens, so a restart can't lose work
 
+#if !DEBUG
+            //friends only: needs a key from Tools/SprunkKeyGen. After the update check, so a blocked
+            //install can still receive a fix; Debug builds skip it so dev runs aren't blocked.
+            if (!Utils.LicenseManager.EnsureLicensed()) return;
+#endif
+
 
             // Always check the GTA folder first thing
             if (!GTAFolder.UpdateGTAFolder(Properties.Settings.Default.RememberGTAFolder))
